@@ -53,8 +53,7 @@ class LevelManager {
         }
         
         if (levelData.hearseSpawn) {
-            this.game.hearse.x = levelData.hearseSpawn.x;
-            this.game.hearse.y = levelData.hearseSpawn.y;
+            this.game.hearse.teleportTo(levelData.hearseSpawn.x, levelData.hearseSpawn.y);
         }
         
         // Create level objects
@@ -112,8 +111,7 @@ class LevelManager {
                     break;
                     
                 case 'hearse':
-                    this.game.hearse.x = obj.x;
-                    this.game.hearse.y = obj.y;
+                    this.game.hearse.teleportTo(obj.x, obj.y);
                     break;
                     
                 default:

@@ -16,6 +16,7 @@ class StickmanGame {
         // Initialize game objects
         this.player = new Player(300, 320);
         this.hearse = new Hearse(100, 280);
+        this.hearse.buildMatterBodies(this.physics); // Phase 3: hearse as Matter composite
         this.coffin = new Coffin(-1000, 340); // Start off-screen until hospital spawns them
         this.corpse = new Corpse(-1000, 300); // Start off-screen until hospital spawns them
 
@@ -662,31 +663,30 @@ class StickmanGame {
     
     teleportToHospital() {
         this.player.x = this.hospital.x - 200;
-        this.hearse.x = this.hospital.x - 300;
+        this.hearse.teleportTo(this.hospital.x - 300);
         this.jumpToChapter(this.hospital.x - 200);
         console.log('🏥 Teleported to hospital for pickup');
     }
-    
+
     teleportToCanyon() {
-        const canyonX = 25000 * 0.55; // 55% - middle of canyon section
+        const canyonX = 25000 * 0.55;
         this.player.x = canyonX;
-        this.hearse.x = canyonX - 100;
+        this.hearse.teleportTo(canyonX - 100);
         this.jumpToChapter(canyonX);
         console.log('🏔️ Teleported to the Great Canyon');
     }
-    
+
     teleportToMountains() {
-        const mountainX = 25000 * 0.67; // 67% - middle of mountain peaks
+        const mountainX = 25000 * 0.67;
         this.player.x = mountainX;
-        this.hearse.x = mountainX - 100;
+        this.hearse.teleportTo(mountainX - 100);
         this.jumpToChapter(mountainX);
         console.log('⛰️ Teleported to Mountain Peaks');
     }
-    
+
     teleportToEnd() {
-        // Move player and hearse near church for quick testing
         this.player.x = this.church.x - 200;
-        this.hearse.x = this.church.x - 300;
+        this.hearse.teleportTo(this.church.x - 300);
         this.jumpToChapter(this.church.x - 200);
         console.log('🏛️ Teleported to church for delivery testing');
     }
