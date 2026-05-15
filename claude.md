@@ -110,9 +110,10 @@ STICKMAN/
 ├── css/styles.css       # Game styling
 ├── js/                  # Modular JavaScript files
 │   ├── Game.js          # Main game orchestration
+│   ├── Physics.js       # Matter.js engine wrapper
 │   ├── Player.js        # Player character
-│   ├── Hearse.js        # Vehicle physics
-│   ├── Coffin.js        # Coffin mechanics
+│   ├── Hearse.js        # Hearse — Matter composite (chassis + 2 wheels)
+│   ├── Coffin.js        # Coffin — Matter body when free on terrain
 │   ├── Corpse.js        # Enhanced ragdoll system
 │   ├── Terrain.js       # Procedural terrain generation
 │   ├── Input.js         # Input management
@@ -238,25 +239,38 @@ corpse: { x, y, width, height, scale, joints: { head, neck, shoulders, arms, elb
 
 ## Development Roadmap
 
-### Phase 2: Dynamic Terrain & Vehicle Physics ⬅️ NEXT
-**Goal**: Hearse tilts with terrain for realistic physics and enhanced chaos
+### Phase 2: Matter.js Physics Migration ✅ COMPLETE (May 2026)
+**Goal**: Replace hand-rolled vehicle physics with Matter.js rigid-body simulation
 
-#### Requirements:
-- [ ] **Hearse tilt system**: Calculate angle based on front/rear wheel terrain height
-- [ ] **Realistic suspension**: Front and rear wheels follow ground independently  
-- [ ] **Enhanced driving**: Acceleration (hold arrow longer = faster = ramp jumps!)
-- [ ] **Varied terrain**: Steeper hills, sharper transitions, flat sections
-- [ ] **Terrain hazards**: Potholes that count as instant hearse bumps
-- [ ] **Visual enhancement**: Hearse sprite rotates to match terrain angle
+#### What was done:
+- [x] **Matter.js engine**: Running every frame via `js/Physics.js` wrapper
+- [x] **Terrain as static bodies**: 312 rotated rectangles, one per landscape segment
+- [x] **Hearse as Matter composite**: Chassis (180×50) + 2 wheel circles + spring-axle constraints
+- [x] **Hearse tilt**: Reads `chassis.angle` directly — no more lerp or stability corrections
+- [x] **Airborne detection**: Via `collisionStart`/`collisionEnd` wheel contact counting
+- [x] **Bump scoring**: Real terrain impact velocity from collision events, not direction changes
+- [x] **Coffin as Matter body**: Dynamic body enters/leaves world based on carry state
+- [x] **Coffin tumble**: `tiltAngle = body.angle` renders coffin rotating on ejection
+- [x] **Corpse↔Matter bridge**: `coffin.velocityX = body.velocity.x` propagates real impulses to Verlet ragdoll
+- [x] **Corpse.js unchanged**: Still Verlet integration with `getGroundYAt()` — do not replace
 
-#### Technical Approach:
-```javascript
-// Hearse tilt calculation
-const frontWheelY = getGroundYAt(hearse.x + hearse.width * 0.8);
-const rearWheelY = getGroundYAt(hearse.x + hearse.width * 0.2);
-const tiltAngle = Math.atan2(frontWheelY - rearWheelY, hearse.width * 0.6);
-// Rotate hearse sprite and adjust coffin physics accordingly
+#### Physics architecture:
 ```
+Matter.js Engine (gravity y=1.0)
+  - Static: terrain (~312 rectangles) + boundary walls
+  - Composite: hearse chassis + wheelA + wheelB + 2 axle constraints
+  - Dynamic: coffin (when free on ground)
+        ↓ impulses via coffin.velocityX
+Corpse.js — unchanged Verlet ragdoll (reads Terrain.getGroundYAt)
+```
+
+#### Key property mappings (Matter → game state, updated each frame):
+- `hearse.x/y` ← `chassis.position.x/y - offsets`
+- `hearse.velocity` ← `chassis.velocity.x`
+- `hearse.tiltAngle` ← `chassis.angle`
+- `hearse.isAirborne` ← `_wheelContacts === 0`
+- `coffin.x/y` ← `body.position.x/y - halfDimensions`
+- `coffin.velocityX/Y` ← `body.velocity.x/y`
 
 ### Phase 3: Enhanced Ragdoll Physics & Visual Polish
 **Goal**: Dynamic corpse physics and visual interaction cues ✅ **LARGELY COMPLETE**
