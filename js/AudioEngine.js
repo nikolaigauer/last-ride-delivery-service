@@ -14,18 +14,40 @@ class AudioEngine {
         this.engineOscillator = null;
         this.isEngineRunning = false;
 
-        this.initializeAudio();
+        // Browsers block AudioContext creation/start until a user gesture.
+        // Defer initialization until the first keydown or click.
+        this._afterInitCallbacks = [];
+        this._installGestureHook();
     }
 
-    async initializeAudio() {
+    _installGestureHook() {
+        const init = () => {
+            if (this.isInitialized) return;
+            this.initializeAudio();
+            // Run anything that was queued before audio was ready
+            while (this._afterInitCallbacks.length > 0) {
+                try { this._afterInitCallbacks.shift()(); } catch (e) { console.warn(e); }
+            }
+        };
+        const once = (e) => {
+            init();
+            document.removeEventListener('keydown', once);
+            document.removeEventListener('click', once);
+            document.removeEventListener('touchstart', once);
+        };
+        document.addEventListener('keydown', once);
+        document.addEventListener('click', once);
+        document.addEventListener('touchstart', once);
+    }
+
+    initializeAudio() {
         try {
             this.audioContext = new(window.AudioContext || window.webkitAudioContext)();
             this.masterGain = this.audioContext.createGain();
             this.masterGain.connect(this.audioContext.destination);
             this.masterGain.gain.value = 0.3; // Master volume
-
             this.isInitialized = true;
-            console.log('🔊 Audio engine initialized successfully');
+            console.log('🔊 Audio engine initialized (after user gesture)');
         } catch (error) {
             console.warn('Audio initialization failed:', error);
         }
@@ -79,7 +101,7 @@ class AudioEngine {
         // Volume changes with speed
         const targetVolume = isAirborne ? 0.05 : (0.15 + Math.abs(velocity) * 0.01);
         this.engineGain.gain.exponentialRampToValueAtTime(
-            Math.max(0.05, Math.min(targetVolume, 0.3)),
+            Math.max(0.05, Math.min(targetVolume, 0.1)),
             this.audioContext.currentTime + 0.1
         );
     }
@@ -179,9 +201,49 @@ class AudioEngine {
         });
     }
 
+    // STEAM HISS — overheat trigger sound (filtered noise burst that fades into a long tail)
+    playSteamHiss() {
+        this.playSound('steamHiss', () => {
+            const duration = 1.4;
+            const bufferSize = Math.floor(this.audioContext.sampleRate * duration);
+            const buffer = this.audioContext.createBuffer(1, bufferSize, this.audioContext.sampleRate);
+            const data = buffer.getChannelData(0);
+            // Sharp attack, long exponential decay — kettle-on-stove feel
+            for (let i = 0; i < bufferSize; i++) {
+                const t = i / bufferSize;
+                const attack = Math.min(1, t * 30); // 30ms ramp-in
+                const decay = Math.exp(-t * 2.2); // gradual tail-off
+                data[i] = (Math.random() * 2 - 1) * attack * decay * 0.6;
+            }
+            const source = this.audioContext.createBufferSource();
+            const hp = this.audioContext.createBiquadFilter();
+            const bp = this.audioContext.createBiquadFilter();
+            const gain = this.audioContext.createGain();
+
+            source.buffer = buffer;
+            hp.type = 'highpass';
+            hp.frequency.value = 1800; // strip the rumble — pure hiss
+            bp.type = 'bandpass';
+            bp.frequency.value = 3500;
+            bp.Q.value = 0.7;
+            gain.gain.value = 0.35;
+
+            source.connect(hp);
+            hp.connect(bp);
+            bp.connect(gain);
+            gain.connect(this.masterGain);
+            source.start();
+        });
+    }
+
     // BACKGROUND MUSIC - 80s Japanese Jazz Fusion
     startBackgroundMusic() {
         if (this.backgroundMusic) return;
+        // If the user hasn't interacted yet, defer until audio is initialized
+        if (!this.isInitialized) {
+            this._afterInitCallbacks.push(() => this.startBackgroundMusic());
+            return;
+        }
 
         this.ensureAudioContext();
 

@@ -61,14 +61,16 @@ The humor comes from escalating physics disasters:
 - **Corpse pickup/drop** - Gray ragdoll corpse entity
 - **Corpse → Coffin loading** with 0.5s lid opening animation
 - **Coffin → Hearse loading** with 0.5s door opening animation
-- **Hearse bump system** - 5 direction changes → door opens permanently
+- **Hearse bump system** - 20 terrain-impact bumps (Matter `collisionStart` events with impactSpeed > threshold) → door opens permanently. Direction-change model is gone.
 - **Coffin ejection** - Slides out back when door opens (with physics!)
-- **Coffin bump system** - 6 cumulative impacts → lid opens permanently (only *severe* hearse bumps transmit through; +2 added on ejection)  
+- **Coffin bump system** - 6 cumulative impacts → lid opens permanently (only *severe* hearse bumps transmit through; +2 added on ejection)
 - **Corpse ejection** - Flies out when coffin lid opens (with velocity!)
 - **Bump memory** - Coffin remembers damage between hearse loads
+- **Chatter mitigation** - Airborne debounced over 5 frames; bump scoring has a 12-frame cooldown so soft suspension on segmented terrain doesn't rapid-fire damage.
+- **Hearse overheat** - Quadratic strain model: `heat += (|velocity| − HEAT_TRIGGER_VEL)² × HEAT_RATE` per frame. Crosses `maxHeat` → engine disabled, hood pops open (procedural canvas drawing), steam vents (particle system). Hysteresis recovery at `HEAT_RECOVERY_THRESHOLD`. Player must exit and stand at the front (orange hood-glow signals the spot) to apply `INTERACTIVE_COOL_RATE` (~3.5× passive). Warning steam wisps appear above heat 70 before full overheat.
 - **Smooth camera** following player/hearse
 - **Procedural hilly terrain** for testing physics
-- **Debug overlay** showing all system states
+- **Debug overlay** showing all system states (Door, Bumps, Coffin, Lid, Corpse, Velocity, Tilt, Position, Health, Heat)
 - **Enhanced UI prompts** for all interactions
 - **Terrain boundary fixes** for consistent physics anywhere
 - **Enhanced Ragdoll System** - 24 anatomical joints with realistic physics

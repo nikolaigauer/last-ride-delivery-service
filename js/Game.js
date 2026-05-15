@@ -449,7 +449,7 @@ class StickmanGame {
         
         // Debug panel in top-left
         this.ctx.fillStyle = 'rgba(0, 0, 0, 0.7)';
-        this.ctx.fillRect(5, 5, 280, 160);
+        this.ctx.fillRect(5, 5, 280, 175);
 
         this.ctx.fillStyle = 'white';
         this.ctx.font = '11px monospace';
@@ -474,6 +474,13 @@ class StickmanGame {
 
         // Health status
         this.ctx.fillText(`Health - Hearse: ${this.hearse.health}/100 | Coffin: ${this.coffin.health}/100 | Corpse: ${this.corpse.health}/100`, 10, 140);
+
+        // Heat / overheat status
+        const heatBar = Math.round(this.hearse.heat);
+        const heatLabel = this.hearse.overheated
+            ? `🔥 OVERHEATED${this.hearse._playerAtHood ? ' (cooling fast)' : ''}`
+            : (heatBar > 70 ? '⚠ running hot' : 'ok');
+        this.ctx.fillText(`Heat: ${heatBar}/100 — ${heatLabel}`, 10, 170);
         
         // Dismemberment status and body part tracking
         if (this.corpse.headDetached) {
