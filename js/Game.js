@@ -9,6 +9,7 @@ class StickmanGame {
         this.physics = new Physics();
         this.input = new InputManager();
         this.terrain = new Terrain(25000); // Epic journey world size
+        this.terrain.buildMatterBody(this.physics); // Phase 2: static terrain for Matter collisions
         this.showDebug = true; // Debug toggle state
         this.audio = new AudioEngine(); // Audio engine for procedural sounds
 

@@ -200,6 +200,45 @@ class Terrain {
         return points;
     }
 
+    // Build static Matter.js bodies from landscapePoints.
+    // Each segment becomes a thick rectangle rotated to match its slope.
+    // Corpse and player still use getGroundYAt() — only hearse/coffin collide with these.
+    buildMatterBody(physics) {
+        const pts = this.landscapePoints;
+        const thick = 200;
+        const bodies = [];
+
+        for (let i = 0; i < pts.length - 1; i++) {
+            const x1 = pts[i].x,   y1 = pts[i].groundY;
+            const x2 = pts[i+1].x, y2 = pts[i+1].groundY;
+            const dx = x2 - x1, dy = y2 - y1;
+            const len = Math.sqrt(dx*dx + dy*dy);
+            const angle = Math.atan2(dy, dx);
+
+            // Inward normal (into earth): (-sin θ, cos θ) in canvas y-down coords
+            const nx = -Math.sin(angle);
+            const ny =  Math.cos(angle);
+            const cx = (x1 + x2) / 2 + nx * thick / 2;
+            const cy = (y1 + y2) / 2 + ny * thick / 2;
+
+            bodies.push(Matter.Bodies.rectangle(cx, cy, len, thick, {
+                isStatic: true,
+                angle,
+                friction: 0.8,
+                restitution: 0.1,
+                label: 'terrain',
+            }));
+        }
+
+        // World boundary walls so hearse can't escape off the edges
+        const wallH = 1000;
+        bodies.push(Matter.Bodies.rectangle(-100, 250, 200, wallH, { isStatic: true, label: 'wall' }));
+        bodies.push(Matter.Bodies.rectangle(this.worldWidth + 100, 250, 200, wallH, { isStatic: true, label: 'wall' }));
+
+        Matter.Composite.add(physics.world, bodies);
+        this.matterBodies = bodies;
+    }
+
     getTerrainSlopeAt(x) {
         // Find two landscape points around the given x position
         let leftPoint = null;
