@@ -1,0 +1,11 @@
+# macOS
+.DS_Store
+**/.DS_Store
+
+# Dev workshop tools (not part of the game)
+unused-parts/
+corpse-workshop-v3.html
+debug.html
+
+# Local Claude Code config
+.claude/settings.local.json

@@ -1,0 +1,121 @@
+body {
+    margin: 0;
+    padding: 0;
+    background: white;
+    display: flex;
+    justify-content: center;
+    align-items: center;
+    min-height: 100vh;
+    font-family: Arial, sans-serif;
+}
+
+.game-container {
+    position: relative;
+    width: 1000px;
+    height: 500px;
+}
+
+canvas {
+    border: 2px solid #333;
+    background: transparent;
+    display: block;
+}
+
+#mission-overlay {
+    position: absolute;
+    top: 32px;
+    right: 32px;
+    width: 340px;
+    padding: 18px 22px 14px;
+    box-sizing: border-box;
+    font-family: 'Special Elite', 'Courier Prime', 'Courier New', monospace;
+    color: #1a1a1a;
+    background: rgba(250, 248, 240, 0.94);
+    border: 1.5px solid #1a1a1a;
+    box-shadow: 2px 2px 0 rgba(0, 0, 0, 0.08);
+    z-index: 10;
+    pointer-events: none;
+    line-height: 1.45;
+    font-size: 15px;
+    letter-spacing: 0.2px;
+}
+
+#mission-overlay.hidden {
+    display: none;
+}
+
+#mission-overlay .dispatch-header {
+    font-size: 10px;
+    letter-spacing: 6px;
+    text-align: center;
+    color: #6a6a6a;
+    margin-bottom: 14px;
+    text-transform: uppercase;
+}
+
+#mission-overlay .dispatch-title {
+    font-size: 19px;
+    font-weight: normal;
+    text-transform: uppercase;
+    letter-spacing: 1.5px;
+    margin-bottom: 14px;
+    padding-bottom: 8px;
+    border-bottom: 1px solid #1a1a1a;
+    min-height: 1.45em;
+}
+
+#mission-overlay .dispatch-body {
+    margin-bottom: 14px;
+    white-space: pre-line;
+    min-height: 1.45em;
+}
+
+#mission-overlay .dispatch-instruction {
+    font-style: italic;
+    color: #1a1a1a;
+    border-top: 1px dashed #999;
+    padding-top: 10px;
+    margin-bottom: 10px;
+    min-height: 1em;
+}
+
+#mission-overlay .dispatch-instruction:empty {
+    border-top-color: transparent;
+    padding-top: 0;
+    margin-bottom: 0;
+}
+
+#mission-overlay .dispatch-dismiss {
+    font-size: 10px;
+    letter-spacing: 2px;
+    text-align: right;
+    color: #888;
+    text-transform: uppercase;
+}
+
+#mission-overlay kbd {
+    font-family: inherit;
+    border: 1px solid #888;
+    padding: 0 4px;
+    border-radius: 2px;
+}
+
+.controls {
+    position: absolute;
+    top: 10px;
+    left: 10px;
+    color: #333;
+    font-size: 14px;
+}
+
+.controls .dev-only {
+    color: #888;
+    font-size: 12px;
+}
+
+.controls code {
+    font-family: monospace;
+    background: rgba(0,0,0,0.06);
+    padding: 0 4px;
+    border-radius: 2px;
+}

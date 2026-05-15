@@ -1,0 +1,108 @@
+{
+  "collaboration_context": {
+    "relationship_dynamic": {
+      "communication_style": "Casual, enthusiastic, highly collaborative. User values creative freedom and artistic decision-making.",
+      "trust_level": "High - comfortable leaving implementation autonomy during breaks ('go bananas and work as much as you want')",
+      "feedback_style": "Fine art background - appreciates critique and pushback. Values exploration but expects critical evaluation of ideas.",
+      "communication_preferences": "Avoid cliché expressions like 'chef's kiss' - deflates authenticity of conversation. Keep language genuine and direct.",
+      "critical_collaboration": "Push back on weak ideas, aesthetic choices, or programming solutions. Goal is excellence, not entertaining every idea.",
+      "development_philosophy": "Conversation before execution. Exploration is valuable but must serve the greater vision.",
+      "working_rhythm": "Discuss/critique ideas → Plan together → Execute with purpose → Iterate based on critical assessment"
+    },
+    "user_preferences": {
+      "design_philosophy": "Dark comedy noir aesthetic, minimalist black-on-white, 'less is more' approach",
+      "technical_approach": "Procedural generation over static assets, modular architecture, real-time synthesis",
+      "gameplay_values": "Physics-driven chaos, skill-based challenges, atmospheric immersion",
+      "creative_stance": "Encourages avant-garde artistic choices, values humor and unexpected moments"
+    },
+    "project_tone": {
+      "genre_inspiration": "Aki Kaurismäki films - noir solitude meets slapstick physics disasters",
+      "humor_style": "Morbid comedy through escalating physics failures in solemn contexts",
+      "artistic_direction": "Procedural audio, minimalist visuals, dignified disasters"
+    }
+  },
+  "technical_context": {
+    "architecture_decisions": {
+      "audio_system": "Web Audio API with real-time synthesis - no static files",
+      "physics_engine": "Custom Verlet integration for ragdoll system",
+      "code_organization": "Modular ES6 classes, single HTML entry point",
+      "performance_philosophy": "Efficiency through procedural generation"
+    },
+    "development_standards": {
+      "code_style": "Clean, well-documented, avoid unnecessary comments unless requested",
+      "testing_approach": "Console commands for quick navigation and testing",
+      "feature_implementation": "Implement fully, then iterate based on feedback"
+    }
+  },
+  "project_evolution": {
+    "major_milestones": [
+      "Core physics system with hearse + ragdoll corpse",
+      "Complete audio engine with procedural sounds",
+      "Head detachment system for escalating chaos",
+      "Epic terrain redesign for longer, skill-based journey"
+    ],
+    "current_status": "Working demo - technically functional but needs significant refinement in humor, visuals, and challenge",
+    "critical_assessment": "At crossroads: solid foundation but not compelling enough yet. Risk of abandonment without focused improvement.",
+    "github_goal": "Create shareable browser-playable game via GitHub Pages",
+    "narrative_concepts": [
+      "Roadkill substitution scene - corpse damaged/missing, driver faces choice to swap in roadkill",
+      "Dark ethical choices wrapped in gallows humor",
+      "Escalating absurdity balanced against noir solemnity"
+    ],
+    "breakthrough_insights": [
+      "Comedy = anticipatory 'oh no!' moments when plans visibly fail",
+      "Visual identity = consistent details (line thickness, edges, typography, era)",
+      "Challenge = failure states with real consequences (pits, bridges, game over)",
+      "Skill = mastery through physics stunts, not just careful driving"
+    ],
+    "development_approach": "Currently collecting 'cool ideas' to experiment with. Build ONE demo using some ideas, not all. Bigger goal: larger game with many challenges using accumulated concepts.",
+    "immediate_priorities": [
+      "MAJOR DESIGN CONVERSATION - fresh chat for gameplay redesign", 
+      "Build ONE demo challenge incorporating new failure/comedy concepts",
+      "Address critical questions: scope management, failure balance, visual consistency",
+      "Experiment with specific challenge types before expanding"
+    ],
+    "future_concepts": {
+      "obstacle_ideas": [
+        "Bridges with structural integrity",
+        "Automatic ferry timing challenges", 
+        "Divine judgment lightning strikes",
+        "Collapsing tunnel sequences",
+        "Mountain gondola transport"
+      ],
+      "atmosphere_concepts": [
+        "Pixel skull dispatcher - ambiguous underworld entity",
+        "Art Deco inspired architecture and visual era",
+        "Sparse narrative through environmental design",
+        "Psychedelic 'Sonic mode' departures from realism",
+        "Typography and line thickness defining visual identity"
+      ],
+      "comedy_insights": [
+        "RV There Yet reference - plans failing in visible, anticipated ways",
+        "Cargo falling off cliffs requiring retrieval missions", 
+        "Anticipatory tension before predictable disasters",
+        "'Oh no!' moments when you see what's about to happen"
+      ],
+      "critical_questions_pending": [
+        "Scope management: Too many features vs. one perfect challenge first?",
+        "Failure state balance: How punishing? Restart vs. checkpoint?", 
+        "Visual consistency: Can Art Deco + psychedelic + noir coexist?",
+        "Demo focus: Which single challenge type to prototype first?"
+      ]
+    }
+  },
+  "session_memory": {
+    "last_session_achievements": [
+      "Removed all pothole clutter",
+      "Extended world to 25,000px epic journey", 
+      "Created 9-section terrain with distinct challenges",
+      "Added teleport commands for testing navigation"
+    ],
+    "active_issues": [
+      "Hearse physics occasionally locks into 90-degree bounce loops",
+      "Buildings sit on uneven terrain instead of flat ground",
+      "Head detachment may need threshold tuning (currently rare)"
+    ],
+    "collaboration_mood": "Highly positive, user appreciates audio system and terrain design"
+  }
+}

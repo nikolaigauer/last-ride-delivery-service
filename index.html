@@ -1,0 +1,51 @@
+<!DOCTYPE html>
+<html lang="en">
+
+<head>
+    <meta charset="UTF-8">
+    <meta name="viewport" content="width=device-width, initial-scale=1.0">
+    <title>Last Ride Delivery Service</title>
+    <link rel="preconnect" href="https://fonts.googleapis.com">
+    <link rel="preconnect" href="https://fonts.gstatic.com" crossorigin>
+    <link href="https://fonts.googleapis.com/css2?family=Special+Elite&display=swap" rel="stylesheet">
+    <link rel="stylesheet" href="css/styles.css">
+</head>
+
+<body>
+    <div class="controls">
+        Use ← → arrow keys to move<br>
+        Press SPACEBAR to enter/exit hearse, pickup/drop coffin, or load coffin into hearse<br>
+        <span class="dev-only">Append <code>?dev=1</code> to the URL for editor tools (E: levels, C: corpse)</span> &middot;
+        Press D to toggle Debug Panel
+    </div>
+    <div class="game-container">
+        <canvas id="gameCanvas" width="1000" height="500"></canvas>
+        <div id="mission-overlay" class="hidden" aria-live="polite">
+            <div class="dispatch-header">─── DISPATCH ───</div>
+            <div class="dispatch-title"></div>
+            <div class="dispatch-body"></div>
+            <div class="dispatch-instruction"></div>
+            <div class="dispatch-dismiss">press <kbd>space</kbd> to continue</div>
+        </div>
+    </div>
+
+    <!-- Load all JS modules -->
+    <script src="js/Utils.js"></script>
+    <script src="js/Input.js"></script>
+    <script src="js/Terrain.js"></script>
+    <script src="js/Corpse.js"></script>
+    <script src="js/Coffin.js"></script>
+    <script src="js/Hearse.js"></script>
+    <script src="js/Player.js"></script>
+    <script src="js/PhoneBooth.js"></script>
+    <script src="js/Hospital.js"></script>
+    <script src="js/Church.js"></script>
+    <script src="js/AudioEngine.js"></script>
+    <script src="js/LevelEditor.js"></script>
+    <script src="js/CorpseEditor.js"></script>
+    <script src="js/LevelManager.js"></script>
+    <script src="js/Game.js"></script>
+    <script src="js/main.js"></script>
+</body>
+
+</html>
