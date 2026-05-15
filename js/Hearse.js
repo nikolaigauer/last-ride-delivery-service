@@ -58,7 +58,7 @@ class Hearse {
 
         this.chassis = Bodies.rectangle(cx, cy, 180, 50, {
             density: 0.002,
-            frictionAir: 0.02,
+            frictionAir: 0.05,
             label: 'hearseChassis',
         });
 
@@ -164,11 +164,11 @@ class Hearse {
             const rightPressed = input.isKeyPressed('ArrowRight');
             const leftPressed  = input.isKeyPressed('ArrowLeft');
 
-            if (rightPressed || leftPressed) {
-                // Motor: set wheel angular velocity; friction with terrain propels chassis
-                const angVel = (rightPressed ? 1 : -1) * this.maxSpeed / 20;
-                Matter.Body.setAngularVelocity(this.wheelA, angVel);
-                Matter.Body.setAngularVelocity(this.wheelB, angVel);
+            // Drive by applying horizontal force to chassis CENTER (zero moment arm = no torque = no tipping).
+            // Wheel angular velocity was causing the chassis to tip backward under acceleration.
+            const driveForce = rightPressed ? 3.0 : leftPressed ? -3.0 : 0;
+            if (driveForce !== 0) {
+                Matter.Body.applyForce(this.chassis, this.chassis.position, { x: driveForce, y: 0 });
             }
 
             // Speed cap — prevents runaway on steep downhills
@@ -179,12 +179,6 @@ class Hearse {
 
             if (rightPressed) this.lastDirection = 'right';
             if (leftPressed)  this.lastDirection = 'left';
-        }
-
-        // Clamp chassis rotation so the hearse can't flip (matches old ±0.5 rad limit)
-        if (Math.abs(this.chassis.angle) > 0.5) {
-            Matter.Body.setAngle(this.chassis, Math.sign(this.chassis.angle) * 0.5);
-            Matter.Body.setAngularVelocity(this.chassis, 0);
         }
 
         // Read state back from Matter (external systems read these properties)
