@@ -16,7 +16,7 @@ class StickmanGame {
         // Initialize game objects
         this.player = new Player(300, 320);
         this.hearse = new Hearse(100, 280);
-        this.hearse.buildMatterBodies(this.physics, this.terrain); // Phase 3: hearse as Matter composite
+        this.hearse.buildMatterBodies(this.physics); // Phase 3: hearse as Matter composite
         this.coffin = new Coffin(-1000, 340); // Start off-screen until hospital spawns them
         this.coffin.buildMatterBody(this.physics); // Phase 4: coffin as Matter body when free
         this.corpse = new Corpse(-1000, 300); // Start off-screen until hospital spawns them
@@ -646,7 +646,7 @@ class StickmanGame {
         if (level) {
             console.log(`📍 Current Level: ${level.id} (${level.name})`);
             console.log(`   Next: ${level.nextLevel || 'None'}`);
-            console.log(`   Objects: ${level.objects?.length || 0}`);
+            console.log(`   Objects: ${(level.objects && level.objects.length) || 0}`);
         } else {
             console.log('ℹ️ No current level loaded');
         }

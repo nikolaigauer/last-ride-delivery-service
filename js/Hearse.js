@@ -30,14 +30,12 @@ class Hearse {
         this.chassis = null;
         this.wheelA = null; // rear (left) wheel
         this.wheelB = null; // front (right) wheel
-        this._wheelContacts = 0;      // active wheel-terrain contact count
-        this._airborneFrames = 0;     // frames with no wheel contact (debounced)
+        this._wheelContacts = 0; // tracks ground contacts for isAirborne
 
-        // Sprite offset: chassis.position → sprite top-left
-        // Wheel center is 45px below chassis center; visual wheel center ≈ 115px from sprite top
-        // → _chassisOffsetY = 115 - 45 = 70
+        // Sprite offset: chassis.position is this many pixels from sprite top-left
+        // Chassis center sits ~60px below sprite top, horizontally centered
         this._chassisOffsetX = this.width / 2; // 105
-        this._chassisOffsetY = 70;
+        this._chassisOffsetY = 60;
 
         this.closedSprite = new Image();
         this.closedSprite.src = 'assets/hearse.png';
@@ -45,20 +43,15 @@ class Hearse {
         this.openSprite.src = 'assets/open-door-hearse.png';
     }
 
-    buildMatterBodies(physics, terrain) {
+    buildMatterBodies(physics) {
         const { Bodies, Composite, Constraint, Events } = Matter;
 
-        // Place chassis so wheels sit exactly on the ground at startup
         const cx = this.x + this._chassisOffsetX;
-        const groundY = terrain
-            ? terrain.getGroundYAt(cx)
-            : this.y + this._chassisOffsetY + 45 + 20;
-        // wheelCenter = groundY - wheelRadius; chassisCenter = wheelCenter - 45
-        const cy = groundY - 20 - 45; // chassis center y
+        const cy = this.y + this._chassisOffsetY;
 
         this.chassis = Bodies.rectangle(cx, cy, 180, 50, {
             density: 0.002,
-            frictionAir: 0.05,
+            frictionAir: 0.02,
             label: 'hearseChassis',
         });
 
@@ -66,30 +59,30 @@ class Hearse {
         this.wheelA = Bodies.circle(cx - 65, cy + 45, wheelRadius, {
             friction: 0.9,
             frictionStatic: 0.5,
-            restitution: 0.05,
+            restitution: 0.1,
             density: 0.003,
-            frictionAir: 0.02,
+            frictionAir: 0.01,
             label: 'hearseWheel',
         });
         this.wheelB = Bodies.circle(cx + 65, cy + 45, wheelRadius, {
             friction: 0.9,
             frictionStatic: 0.5,
-            restitution: 0.05,
+            restitution: 0.1,
             density: 0.003,
-            frictionAir: 0.02,
+            frictionAir: 0.01,
             label: 'hearseWheel',
         });
 
-        // Near-rigid axles: high stiffness eliminates sag that causes the sprite to hover
+        // Suspension constraints: soft springs connect chassis to each wheel
         const axelA = Constraint.create({
             bodyA: this.chassis, pointA: { x: -65, y: 25 },
             bodyB: this.wheelA,
-            stiffness: 0.95, damping: 0.8,
+            stiffness: 0.6, damping: 0.5,
         });
         const axelB = Constraint.create({
             bodyA: this.chassis, pointA: { x: 65, y: 25 },
             bodyB: this.wheelB,
-            stiffness: 0.95, damping: 0.8,
+            stiffness: 0.6, damping: 0.5,
         });
 
         Composite.add(physics.world, [this.chassis, this.wheelA, this.wheelB, axelA, axelB]);
@@ -164,11 +157,11 @@ class Hearse {
             const rightPressed = input.isKeyPressed('ArrowRight');
             const leftPressed  = input.isKeyPressed('ArrowLeft');
 
-            // Drive by applying horizontal force to chassis CENTER (zero moment arm = no torque = no tipping).
-            // Wheel angular velocity was causing the chassis to tip backward under acceleration.
-            const driveForce = rightPressed ? 3.0 : leftPressed ? -3.0 : 0;
-            if (driveForce !== 0) {
-                Matter.Body.applyForce(this.chassis, this.chassis.position, { x: driveForce, y: 0 });
+            if (rightPressed || leftPressed) {
+                // Motor: set wheel angular velocity; friction with terrain propels chassis
+                const angVel = (rightPressed ? 1 : -1) * this.maxSpeed / 20;
+                Matter.Body.setAngularVelocity(this.wheelA, angVel);
+                Matter.Body.setAngularVelocity(this.wheelB, angVel);
             }
 
             // Speed cap — prevents runaway on steep downhills
@@ -181,18 +174,16 @@ class Hearse {
             if (leftPressed)  this.lastDirection = 'left';
         }
 
-        // Read state back from Matter (external systems read these properties)
-        this.velocity  = this.chassis.velocity.x;
-        this.tiltAngle = this.chassis.angle;
-
-        // Debounce airborne: require 4 consecutive frames of no wheel contact.
-        // Prevents micro-airborne from spring oscillation touching/losing terrain each frame.
-        if (this._wheelContacts === 0) {
-            this._airborneFrames = Math.min(this._airborneFrames + 1, 10);
-        } else {
-            this._airborneFrames = 0;
+        // Clamp chassis rotation so the hearse can't flip (matches old ±0.5 rad limit)
+        if (Math.abs(this.chassis.angle) > 0.5) {
+            Matter.Body.setAngle(this.chassis, Math.sign(this.chassis.angle) * 0.5);
+            Matter.Body.setAngularVelocity(this.chassis, 0);
         }
-        this.isAirborne = this._airborneFrames >= 4;
+
+        // Read state back from Matter (external systems read these properties)
+        this.velocity    = this.chassis.velocity.x;
+        this.tiltAngle   = this.chassis.angle;
+        this.isAirborne  = this._wheelContacts === 0;
 
         // Map chassis center → sprite top-left
         this.x = this.chassis.position.x - this._chassisOffsetX;
