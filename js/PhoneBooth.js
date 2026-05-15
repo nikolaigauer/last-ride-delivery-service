@@ -8,6 +8,7 @@ class PhoneBooth {
         this.height = 80;
         this.isRinging = true;
         this.isAnswered = false;
+        this.active = true;
         
         // Animation state for ringing effect
         this.ringTimer = 0;
@@ -21,6 +22,7 @@ class PhoneBooth {
     }
 
     update(terrain) {
+        if (!this.active) return;
         // Position phone booth on ground
         const groundY = terrain.getGroundYAt(this.x + this.width / 2);
         this.y = groundY - this.height;
@@ -33,7 +35,7 @@ class PhoneBooth {
     }
 
     canInteract(player) {
-        if (player.inVehicle || this.isAnswered) return false;
+        if (!this.active || player.inVehicle || this.isAnswered) return false;
         const distance = Math.abs(player.x - this.x);
         return distance < 60;
     }
@@ -47,13 +49,14 @@ class PhoneBooth {
 
     getMissionBriefing() {
         return {
-            title: "Dispatch - Long Haul",
-            message: "We got a pickup at Miller's Funeral Home, delivery to Hillside Cemetery.\n\nIt's a long journey through rough country. Watch for the canyon.\n\nTry to keep 'em dignified this time...",
-            instruction: "→ Drive east - LONG journey ahead"
+            title: "Dispatch",
+            message: "Miller's Funeral Home. Pickup. Cemetery Hill, far east.\n\nLong road. Watch the canyon. Don't lose him again.\n\nTry not to make it two funerals.",
+            instruction: "→ Drive east"
         };
     }
 
     draw(ctx, cameraX, player) {
+        if (!this.active) return;
         const screenX = this.x - cameraX;
         
         // Only draw if visible on screen

@@ -26,8 +26,19 @@ class StickmanGame {
         this.corpse.isActive = false;
         this.phoneBooth = new PhoneBooth(800, 300); // Dispatch phone booth for missions
         this.hospital = new Hospital(2500, 280); // Hospital morgue pickup location
-        this.church = new Church(22000, 280); // Church destination for delivery - FAR away!
-        this.deliveryBooth = new PhoneBooth(23000, 300); // Delivery completion booth after church
+        this.church = new Church(22000, 280, "St. Mary's"); // Wrong church (episode 1)
+        this.deliveryBooth = new PhoneBooth(23000, 300); // "Wrong church" callback phone
+        this.church2 = new Church(24500, 280, "St. Margaret's"); // Real destination (episode 2)
+        this.church2.active = false; // Chapter 2 will activate + reposition
+
+        // Chapter-2 lazy slots (created on chapter swap)
+        this.openingPhone = null;
+        this.closingPhone = null;
+        this.monologue = null;
+        this.bridge = new Bridge(this.physics);  // Chapter 1: counterweight drawbridge
+        this.plankRavine = null;                 // Chapter 2: plank-bridged chasm (lazy)
+        this.planks = [];
+        this.heldPlank = null;
         // this.potholeManager = new PotholeManager(); // Terrain hazards - REMOVED
 
         // Start player in hearse for streamlined beginning
@@ -41,7 +52,17 @@ class StickmanGame {
         this.missionBriefing = null;
         this.briefingTimer = 0;
 
-        // Set delivery booth to only ring when coffin is loaded
+        // Episode state: 1 = heading to St. Mary's (wrong), 2 = heading to St. Margaret's (real), 'complete'
+        this.currentEpisode = 1;
+
+        // Game-over / respawn state
+        // 'dying' → fade in, 'dead' → show prompt, null → alive
+        this.deathState = null;
+        this.deathAlpha = 0;
+        // Checkpoint: respawn just west of the bridge so player retries the puzzle
+        this.checkpointX = 14500;
+
+        // Delivery booth only rings after the wrong-church drop
         this.deliveryBooth.isRinging = false;
 
         // Generate potholes across the world - REMOVED
@@ -53,6 +74,7 @@ class StickmanGame {
         this.levelEditor = this.isDevMode ? new LevelEditor(this) : noopEditor;
         this.corpseEditor = this.isDevMode ? new CorpseEditor(this) : noopEditor;
         this.levelManager = new LevelManager(this);
+        this.chapterManager = new ChapterManager(this);
         
         // Expose level management commands to console for testing
         window.game = this;
@@ -67,29 +89,66 @@ class StickmanGame {
         }, 2000);
     }
 
-    completeDelivery() {
-        const completion = {
-            title: "Delivery Complete",
-            message: "Package delivered successfully to final destination.\n\nThe family appreciates your... professional service.",
-            instruction: "🎯 Mission Complete! Press R to restart"
-        };
-        this.showMissionBriefing(completion);
-        this.deliveryBooth.isRinging = false;
-        this.deliveryBooth.isAnswered = true;
-        console.log('🎯 Delivery completed successfully!');
+    // Eject the coffin out of the hearse onto the church grounds, lid pops, corpse spills.
+    // Used at both St. Mary's (episode 1) and St. Margaret's (episode 2).
+    dropCargoOnChurchGrounds() {
+        if (!this.coffin.isActive || !this.coffin.inHearse) return;
+        this.coffin.ejectFromHearse(this.hearse.x, this.hearse.y, this.hearse.velocity, this.hearse.tiltAngle);
+        this.coffin.lidOpen = true;
+        this.coffin.lidOpenedByBump = true; // Update loop will auto-eject the corpse next frame
     }
 
+    // Episode 1 result — coffin's at the wrong church, deliveryBooth starts ringing.
     showDeliveryResult(deliveryResult) {
         const completion = {
-            title: `Delivery Complete — Score: ${deliveryResult.score}/100`,
-            message: `${deliveryResult.message}\n\nHealth Status:\nHearse: ${deliveryResult.hearseHealth || 0}/100\nCoffin: ${deliveryResult.coffinHealth || 0}/100\nCorpse: ${deliveryResult.corpseHealth || 0}/100\n\nLid open: ${deliveryResult.lidOpen ? 'Yes' : 'No'}\nCorpse present: ${deliveryResult.corpseInCoffin ? 'Yes' : 'No'}`,
-            instruction: "Mission complete. Press SPACE to continue."
+            title: `Drop Recorded — Score: ${deliveryResult.score}/100`,
+            message: `${deliveryResult.message}\n\nHealth Status:\nHearse: ${deliveryResult.hearseHealth || 0}/100\nCoffin: ${deliveryResult.coffinHealth || 0}/100\nCorpse: ${deliveryResult.corpseHealth || 0}/100`,
+            instruction: "→ The phone is ringing. Walk east."
         };
-        this.showMissionBriefing(completion, 1200); // ~20s after typewriter reveal completes
-
-        // Activate delivery booth for next mission
+        this.showMissionBriefing(completion, 1200);
         this.deliveryBooth.isRinging = true;
-        console.log(`🎯 Church delivery completed! Score: ${deliveryResult.score}/100`);
+        console.log(`🕊️ Episode 1 drop complete. Score: ${deliveryResult.score}/100`);
+    }
+
+    // Wrong-church gag: dispatcher reveals the actual destination is St. Margaret's.
+    answerWrongChurchPhone() {
+        const briefing = {
+            title: "Dispatch — Long Pause",
+            message: "Yeah... about that drop.\n\nThat was St. Mary's, wasn't it. Family's at St. Margaret's. Different church. They sound similar, I know.\n\nGrab the casket. Head east. Don't make a thing of it.",
+            instruction: "→ Pick the coffin back up. Drive east to St. Margaret's."
+        };
+        this.showMissionBriefing(briefing);
+        this.deliveryBooth.isRinging = false;
+        this.deliveryBooth.isAnswered = true;
+        this.currentEpisode = 2;
+        console.log('☎️ Wrong church revealed. Episode 2 begins.');
+    }
+
+    // Episode 2 result — final delivery, dispatcher will call again at the closing phone.
+    showFinalCompletion(deliveryResult) {
+        const completion = {
+            title: `Delivery Complete — Score: ${deliveryResult.score}/100`,
+            message: `${deliveryResult.message}\n\nThat's the one. Family's relieved. Mostly.`,
+            instruction: "→ Phone is ringing further east. Walk to it."
+        };
+        this.showMissionBriefing(completion, 1200);
+        console.log(`🕯️ Chapter 2 drop complete. Score: ${deliveryResult.score}/100`);
+    }
+
+    // Closing call — dispatcher's sign-off at end of chapter 2 (placeholder for chapter 3 hook).
+    answerClosingPhone() {
+        const briefing = {
+            title: "Dispatch — End of Shift",
+            message: "Yeah, that's the one. Good work.\n\nGo home. Wash the hearse. There'll be another call.\n\nThere's always another call.",
+            instruction: "🕯️ End of demo."
+        };
+        this.showMissionBriefing(briefing);
+        if (this.closingPhone) {
+            this.closingPhone.isRinging = false;
+            this.closingPhone.isAnswered = true;
+        }
+        this.currentEpisode = 'complete';
+        console.log('☎️ Closing call answered. End of demo.');
     }
 
     update() {
@@ -128,18 +187,34 @@ class StickmanGame {
 
         // Handle spacebar interactions
         if (this.input.isKeyPressed('Space')) {
-            // If mission briefing is showing, dismiss/complete it instead of triggering gameplay action
-            if (this.missionBriefing) {
+            if (this.deathState === 'dead') {
+                this.respawnAtCheckpoint();
+            } else if (this.missionBriefing) {
                 this.dismissMissionBriefing();
             } else {
                 this.handleInteractions();
             }
-            this.input.clearKey('Space'); // Prevent key repeat
+            this.input.clearKey('Space');
         }
 
         // Update all game objects (hearse first, then player follows)
         this.hearse.update(this.terrain, this.input, this.player, this.coffin);
         this.player.update(this.input, this.terrain, this.hearse);
+
+        // Block player from walking across gorge when bridge is raised (chapter 1 only)
+        if (this.bridge && this.bridge.active && !this.bridge.isGorgeOpen() && !this.player.inVehicle) {
+            const gorgeL = this.bridge.leftEdgeX;
+            const gorgeR = this.bridge.rightEdgeX;
+            const playerCX = this.player.x + this.player.width / 2;
+            if (playerCX > gorgeL && playerCX < gorgeR) {
+                // Push to nearest edge
+                if (playerCX < (gorgeL + gorgeR) / 2) {
+                    this.player.x = gorgeL - this.player.width;
+                } else {
+                    this.player.x = gorgeR;
+                }
+            }
+        }
 
         // Update audio based on game state
         if (this.player.inVehicle) {
@@ -149,6 +224,29 @@ class StickmanGame {
         this.deliveryBooth.update(this.terrain);
         this.hospital.update(this.terrain);
         this.church.update(this.terrain);
+        this.church2.update(this.terrain);
+
+        // Chapter 1: drawbridge update (no-op when inactive)
+        if (this.bridge) this.bridge.update(this.coffin, this.hearse);
+
+        // Chapter-2 entities (no-op when inactive / null)
+        if (this.openingPhone) this.openingPhone.update(this.terrain);
+        if (this.closingPhone) this.closingPhone.update(this.terrain);
+        if (this.plankRavine) {
+            for (const plank of this.planks) plank.update(this.terrain);
+        }
+        if (this.monologue) {
+            const trackX = this.player.inVehicle ? this.hearse.x : this.player.x;
+            this.monologue.update(trackX);
+        }
+
+        // Carry held plank with the player
+        if (this.heldPlank && this.heldPlank.isPickedUp) {
+            this.heldPlank.x = this.player.x - this.heldPlank.width / 2 + this.player.width / 2;
+            this.heldPlank.y = this.player.y - 30;
+        }
+
+        this.chapterManager.update();
         // this.potholeManager.update(this.terrain); - REMOVED
         
         // Check for pothole collisions - REMOVED
@@ -224,6 +322,30 @@ class StickmanGame {
             }
         }
 
+        // Coffin rescue — if it sinks below terrain, surface it
+        if (this.coffin.isActive && !this.coffin.inHearse && !this.coffin.isPickedUp && this.coffin.body) {
+            const maxGroundY = this.terrain.getGroundYAt(this.coffin.x + this.coffin.width / 2) + 30;
+            if (this.coffin.y > maxGroundY) {
+                Matter.Body.setPosition(this.coffin.body, {
+                    x: this.coffin.x + this.coffin.width / 2,
+                    y: maxGroundY - this.coffin.height / 2,
+                });
+                Matter.Body.setVelocity(this.coffin.body, { x: 0, y: 0 });
+            }
+        }
+
+        // Death detection — player falls off screen
+        if (this.deathState === null && this.player.y > this.canvas.height + 20) {
+            this.deathState = 'dying';
+            this.deathAlpha = 0;
+        }
+
+        // Death fade animation
+        if (this.deathState === 'dying') {
+            this.deathAlpha = Math.min(1, this.deathAlpha + 0.025);
+            if (this.deathAlpha >= 1) this.deathState = 'dead';
+        }
+
         // Update camera
         this.updateCamera();
 
@@ -232,6 +354,21 @@ class StickmanGame {
 
         // Update mission briefing timer
         this.updateMissionBriefing();
+    }
+
+    respawnAtCheckpoint() {
+        // Respawn player on foot just west of the bridge
+        if (this.player.inVehicle) this.player.exitHearse(this.hearse, this.terrain);
+        this.player.x = this.checkpointX;
+        this.player.y = this.terrain.getGroundYAt(this.checkpointX) - this.player.height;
+
+        // If hearse also fell, bring it back
+        if (this.hearse.y > this.canvas.height) {
+            this.hearse.teleportTo(this.checkpointX - 300, this.terrain.getGroundYAt(this.checkpointX - 300) - 80);
+        }
+
+        this.deathState = null;
+        this.deathAlpha = 0;
     }
 
     handleInteractions() {
@@ -248,23 +385,54 @@ class StickmanGame {
             return; // Exit early after phone interaction
         }
 
-        // Check church delivery completion (when hearse with coffin is at church)
-        if (this.church.canCompleteDelivery(this.hearse, this.coffin, this.corpse) && this.input.isKeyPressed('Space')) {
+        // Episode 1: drop at St. Mary's (the wrong church)
+        if (this.currentEpisode === 1 && this.church.canCompleteDelivery(this.hearse, this.coffin, this.corpse)) {
             const deliveryResult = this.church.completeDelivery(this.hearse, this.coffin, this.corpse);
+            this.dropCargoOnChurchGrounds();
             this.showDeliveryResult(deliveryResult);
-            
-            // Trigger level completion after delivery
-            setTimeout(() => {
-                this.levelManager.completeLevel();
-            }, 3000);
-            
-            return; // Exit early after delivery
+            return;
         }
 
-        // Check delivery completion (when carrying coffin to delivery booth)
-        if (this.deliveryBooth.canInteract(this.player) && this.coffin.isActive && this.coffin.inHearse) {
-            this.completeDelivery();
-            return; // Exit early after delivery
+        // Episode 2: drop at St. Margaret's (the real one)
+        if (this.currentEpisode === 2 && this.church2.canCompleteDelivery(this.hearse, this.coffin, this.corpse)) {
+            const deliveryResult = this.church2.completeDelivery(this.hearse, this.coffin, this.corpse);
+            this.dropCargoOnChurchGrounds();
+            this.showFinalCompletion(deliveryResult);
+            this.currentEpisode = 'awaiting_closing_call';
+            if (this.closingPhone) this.closingPhone.isRinging = true;
+            return;
+        }
+
+        // Wrong-church callback phone after episode-1 drop
+        if (this.deliveryBooth.canInteract(this.player) && this.deliveryBooth.isRinging) {
+            this.answerWrongChurchPhone();
+            return;
+        }
+
+        // Closing phone (chapter-2 wrap-up)
+        if (this.closingPhone && this.closingPhone.canInteract(this.player) && this.closingPhone.isRinging) {
+            this.answerClosingPhone();
+            return;
+        }
+
+        // Plank placement (must be holding a plank, near a ravine edge)
+        if (this.heldPlank && this.plankRavine && this.plankRavine.canPlacePlank(this.player, this.heldPlank)) {
+            this.plankRavine.placePlank(this.heldPlank);
+            this.heldPlank = null;
+            console.log('🪵 Plank placed across chasm');
+            return;
+        }
+
+        // Plank pickup (when not in vehicle, not carrying coffin/corpse, not already holding plank)
+        if (!this.player.inVehicle && !this.heldPlank && !this.coffin.isPickedUp && !this.corpse.isPickedUp) {
+            for (const plank of this.planks) {
+                if (plank.canPickup(this.player)) {
+                    plank.pickUp(this.player);
+                    this.heldPlank = plank;
+                    console.log('🪵 Picked up plank');
+                    return;
+                }
+            }
         }
 
         // Check hospital door interaction (second priority)
@@ -278,16 +446,14 @@ class StickmanGame {
             this.corpse.isPickedUp = true;
             console.log('Picked up corpse');
 
-        // Check detached head pickup (only if NOT already carrying it)
+        // Check detached head pickup (only if NOT already carrying it and NOT already in coffin)
         } else if (!this.player.inVehicle && this.corpse.isActive && this.corpse.headDetached && this.corpse.detachedHead &&
-                   !this.corpse.detachedHead.isPickedUp &&
-                   !this.coffin.isPickedUp && !this.corpse.isPickedUp && this.corpse.ejectionImmunityTimer === 0) {
-            const distanceToHead = Math.abs(this.player.x - this.corpse.detachedHead.x);
-            if (distanceToHead < 60) {
-                // Pick up detached head
-                this.corpse.detachedHead.isPickedUp = true;
-                console.log('Picked up detached head');
-            }
+                   !this.corpse.detachedHead.isPickedUp && !this.corpse.detachedHead.inCoffin &&
+                   !this.coffin.isPickedUp && !this.corpse.isPickedUp && this.corpse.ejectionImmunityTimer === 0 &&
+                   Math.abs(this.player.x - this.corpse.detachedHead.x) < 60) {
+            // Pick up detached head
+            this.corpse.detachedHead.isPickedUp = true;
+            console.log('Picked up detached head');
 
         } else if (!this.player.inVehicle && this.coffin.isActive && !this.coffin.isPickedUp &&
             distanceToCoffin < 60 && !this.corpse.isPickedUp &&
@@ -353,8 +519,14 @@ class StickmanGame {
             // Unload coffin from hearse
             this.hearse.unloadCoffin(this.coffin, this.terrain);
 
-        } else if (this.player.canEnterHearse(this.hearse) && !this.coffin.isPickedUp && !this.corpse.isPickedUp && 
+        } else if (this.player.canEnterHearse(this.hearse) && !this.coffin.isPickedUp && !this.corpse.isPickedUp &&
                    !(this.corpse.detachedHead && this.corpse.detachedHead.isPickedUp)) {
+            // Drop any held plank on the ground before entering
+            if (this.heldPlank) {
+                this.heldPlank.drop();
+                this.heldPlank = null;
+                console.log('🪵 Plank dropped before entering hearse');
+            }
             // Enter hearse
             this.player.enterHearse(this.hearse);
             this.audio.playDoorOpen();
@@ -384,7 +556,7 @@ class StickmanGame {
         // Smoother camera following - especially important during jumps
         const cameraSpeed = this.player.inVehicle ? 0.08 : 0.1; // Slower camera (was 0.15)
         this.cameraX += (this.targetCameraX - this.cameraX) * cameraSpeed;
-        this.cameraX = Math.max(0, Math.min(25000 - this.canvas.width, this.cameraX)); // Epic world width
+        this.cameraX = Math.max(0, Math.min(this.terrain.worldWidth - this.canvas.width, this.cameraX));
     }
 
     render() {
@@ -399,6 +571,16 @@ class StickmanGame {
         this.deliveryBooth.draw(this.ctx, this.cameraX, this.player);
         this.hospital.draw(this.ctx, this.cameraX, this.hearse, this.player);
         this.church.draw(this.ctx, this.cameraX, this.hearse, this.coffin, this.corpse);
+        this.church2.draw(this.ctx, this.cameraX, this.hearse, this.coffin, this.corpse);
+
+        // Chapter 1: drawbridge (no-op when inactive)
+        if (this.bridge) this.bridge.draw(this.ctx, this.cameraX);
+
+        // Chapter-2 entities
+        if (this.openingPhone) this.openingPhone.draw(this.ctx, this.cameraX, this.player);
+        if (this.closingPhone) this.closingPhone.draw(this.ctx, this.cameraX, this.player);
+        if (this.plankRavine) this.plankRavine.draw(this.ctx, this.cameraX, this.player, this.heldPlank);
+        for (const plank of this.planks) plank.draw(this.ctx, this.cameraX, this.heldPlank === plank ? this.player : null);
 
         // Only draw coffin and corpse if they're active
         if (this.corpse.isActive) {
@@ -422,6 +604,29 @@ class StickmanGame {
         
         // Draw corpse editor on top of everything
         this.corpseEditor.draw(this.ctx, this.cameraX);
+
+        // Monologue floats above the player (camera-aware)
+        if (this.monologue) this.monologue.draw(this.ctx, this.player, this.cameraX);
+
+        // Fade overlay LAST — covers everything inside the canvas during chapter transitions
+        if (this.chapterManager) this.chapterManager.drawFadeOverlay(this.ctx);
+
+        // Death overlay (drawn after chapter fade so it always reads)
+        if (this.deathState === 'dying' || this.deathState === 'dead') {
+            const ctx = this.ctx;
+            ctx.fillStyle = `rgba(0,0,0,${this.deathAlpha})`;
+            ctx.fillRect(0, 0, this.canvas.width, this.canvas.height);
+            if (this.deathState === 'dead') {
+                ctx.fillStyle = 'rgba(255,255,255,0.9)';
+                ctx.font = 'bold 28px "Special Elite", monospace';
+                ctx.textAlign = 'center';
+                ctx.fillText('You fell.', this.canvas.width / 2, this.canvas.height / 2 - 16);
+                ctx.font = '16px "Special Elite", monospace';
+                ctx.fillStyle = 'rgba(255,255,255,0.65)';
+                ctx.fillText('press SPACE to try again', this.canvas.width / 2, this.canvas.height / 2 + 16);
+                ctx.textAlign = 'left';
+            }
+        }
         // Mission briefing is now an HTML overlay; nothing to draw on canvas.
     }
 
@@ -449,7 +654,7 @@ class StickmanGame {
         
         // Debug panel in top-left
         this.ctx.fillStyle = 'rgba(0, 0, 0, 0.7)';
-        this.ctx.fillRect(5, 5, 280, 175);
+        this.ctx.fillRect(5, 5, 280, 190);
 
         this.ctx.fillStyle = 'white';
         this.ctx.font = '11px monospace';
@@ -469,7 +674,7 @@ class StickmanGame {
         this.ctx.fillText(`Coffin: ${this.coffin.inHearse ? 'IN HEARSE' : this.coffin.isPickedUp ? 'CARRYING' : 'ON GROUND'}`, 10, 65);
         this.ctx.fillText(`Lid: ${lidStatus} | Coffin bumps: ${this.coffin.bumpCounter}/${this.coffin.bumpThreshold}`, 10, 80);
         this.ctx.fillText(`Corpse: ${corpseStatus}`, 10, 95);
-        this.ctx.fillText(`Hearse velocity: ${this.hearse.velocity.toFixed(1)} | Tilt: ${(this.hearse.tiltAngle * 180 / Math.PI).toFixed(1)}°${this.hearse.isAirborne ? ' | 🚀 AIRBORNE!' : ''}`, 10, 110);
+        this.ctx.fillText(`Hearse velocity: ${this.hearse.velocity.toFixed(1)} | Tilt: ${(this.hearse.tiltAngle * 180 / Math.PI).toFixed(1)}°`, 10, 110);
         this.ctx.fillText(`Player X: ${Math.round(this.player.x)} | Hearse X: ${Math.round(this.hearse.x)}`, 10, 125);
 
         // Health status
@@ -481,6 +686,7 @@ class StickmanGame {
             ? `🔥 OVERHEATED${this.hearse._playerAtHood ? ' (cooling fast)' : ''}`
             : (heatBar > 70 ? '⚠ running hot' : 'ok');
         this.ctx.fillText(`Heat: ${heatBar}/100 — ${heatLabel}`, 10, 170);
+        if (this.bridge && this.bridge.active) this.ctx.fillText(this.bridge.getDebugText(), 10, 185);
         
         // Dismemberment status and body part tracking
         if (this.corpse.headDetached) {

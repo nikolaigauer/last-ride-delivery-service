@@ -20,6 +20,7 @@ class Hospital {
         // Mission state
         this.hasSpawnedCargo = false;
         this.playerHasInteracted = false;
+        this.active = true;
         
         // Interaction ranges
         this.doorInteractionRange = 60;
@@ -28,6 +29,7 @@ class Hospital {
     }
 
     update(terrain) {
+        if (!this.active) return;
         // Position hospital on ground - use the flattened terrain around hospital
         // The terrain system already flattens ±300px around x=2500 (hospital location)
         const flatGroundY = terrain.getGroundYAt(this.x + this.width / 2);
@@ -69,7 +71,7 @@ class Hospital {
     
     canPlayerInteractWithDoor(player) {
         // Check if player (on foot) can interact with hospital door
-        if (player.inVehicle) return false;
+        if (!this.active || player.inVehicle) return false;
         
         const distance = Math.abs(player.x - this.doorX);
         return distance < this.doorInteractionRange;
@@ -210,6 +212,7 @@ class Hospital {
     }
 
     draw(ctx, cameraX, hearse, player) {
+        if (!this.active) return;
         const screenX = this.x - cameraX;
         const loadingAreaScreenX = this.loadingAreaX - cameraX;
 

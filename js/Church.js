@@ -1,9 +1,10 @@
 // Church destination point for delivery
 
 class Church {
-    constructor(x = 3500, y = 280) {
+    constructor(x = 3500, y = 280, name = "St. Mary's") {
         this.x = x;
         this.y = y;
+        this.name = name;
         this.width = 400; // Church building width
         this.height = 280; // Church building height
 
@@ -15,6 +16,7 @@ class Church {
 
         // Mission state
         this.hasReceivedDelivery = false;
+        this.active = true;
         
         // Interaction ranges
         this.deliveryAreaTolerance = this.deliveryAreaWidth * 0.75; // More lenient
@@ -22,6 +24,7 @@ class Church {
     }
 
     update(terrain) {
+        if (!this.active) return;
         // Position church on ground (use ground level at church center)
         const groundY = terrain.getGroundYAt(this.x + this.width / 2);
         this.y = groundY - this.height;
@@ -50,13 +53,10 @@ class Church {
     }
     
     canCompleteDelivery(hearse, coffin, corpse) {
-        // Check if delivery can be completed:
-        // 1. Hearse is in delivery area
-        // 2. Coffin is in hearse
-        // 3. Corpse is in coffin (or has been delivered previously)
-        return this.checkHearseInDeliveryArea(hearse) && 
-               coffin.inHearse && 
-               (corpse.inCoffin || this.hasReceivedDelivery);
+        if (!this.active || this.hasReceivedDelivery) return false;
+        return this.checkHearseInDeliveryArea(hearse) &&
+               coffin.inHearse &&
+               corpse.inCoffin;
     }
 
     completeDelivery(hearse, coffin, corpse) {
@@ -230,6 +230,17 @@ class Church {
         ctx.stroke();
         ctx.fillStyle = '#fff';
 
+        // Engraved name plaque above the doors (e.g. "ST. MARY'S")
+        if (this.name) {
+            const plaqueY = naveY + naveH * 0.55;
+            ctx.font = 'bold 14px monospace';
+            ctx.textAlign = 'center';
+            ctx.fillStyle = '#000';
+            ctx.fillText(this.name.toUpperCase(), naveX + naveW / 2, plaqueY);
+            ctx.textAlign = 'start';
+            ctx.fillStyle = '#fff';
+        }
+
         // Two arched nave windows on each side of doors
         const winH = 50, winW = 22;
         const winY = naveY + naveH - winH - 30;
@@ -250,6 +261,7 @@ class Church {
     }
 
     draw(ctx, cameraX, hearse, coffin, corpse) {
+        if (!this.active) return;
         const screenX = this.x - cameraX;
         const deliveryAreaScreenX = this.deliveryAreaX - cameraX;
 

@@ -24,7 +24,7 @@ class Hearse {
         // Health system (unchanged)
         this.maxHealth = 100;
         this.health = 100;
-        this.damagePerBump = 8;
+        this.damagePerBump = 3;
 
         // Matter.js bodies — populated by buildMatterBodies()
         this.chassis = null;
@@ -32,9 +32,9 @@ class Hearse {
         this.wheelB = null; // front (right) wheel
         this._wheelContacts = 0; // raw contact count from Matter events
         this._airborneFrames = 0; // debounced no-contact frame counter
-        this._bumpCooldown = 0; // frames remaining where a new bump can't score
-        this.AIRBORNE_DEBOUNCE = 5; // need N consecutive no-contact frames to flag airborne
-        this.BUMP_COOLDOWN_FRAMES = 12; // ~200ms between bump scores
+        this._bumpCooldown = 24; // frames remaining where a new bump can't score
+        this.AIRBORNE_DEBOUNCE = 3; // need N consecutive no-contact frames to flag airborne
+        this.BUMP_COOLDOWN_FRAMES = 36; // ~200ms between bump scores
 
         // Overheat mechanic — quadratic strain model:
         // heat += (|velocity| - HEAT_TRIGGER_VEL)² × HEAT_RATE per frame

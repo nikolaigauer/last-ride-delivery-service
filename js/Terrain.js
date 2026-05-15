@@ -89,13 +89,7 @@ class Terrain {
             // SECTION 4: Mountain Approach - Getting Serious (35% - 50%)
             else if (worldProgress < 0.50) {
                 const phase = (worldProgress - 0.35) / 0.15;
-                variation = 20 + Math.sin(phase * Math.PI * 3) * 60 + Math.sin(phase * Math.PI * 9) * 30;
-                
-                // Add some challenging bumps
-                const bumpFreq = (x / 500) % 1;
-                if (bumpFreq < 0.15) {
-                    variation += Math.sin(bumpFreq * Math.PI * 6.67) * 25; // Sharp bump
-                }
+                variation = 20 + Math.sin(phase * Math.PI * 3) * 60 + Math.sin(phase * Math.PI * 5) * 18;
             }
             // SECTION 5: The Great Canyon - Major Challenge (50% - 60%)
             else if (worldProgress < 0.60) {
@@ -122,19 +116,7 @@ class Terrain {
             // SECTION 6: Mountain Peaks - Technical Challenge (60% - 75%)
             else if (worldProgress < 0.75) {
                 const phase = (worldProgress - 0.60) / 0.15;
-                // Sharp, jagged mountain terrain
-                variation = 50 + Math.sin(phase * Math.PI * 12) * 70;
-                
-                // Add dangerous spikes
-                const spikeFreq = (x / 200) % 1;
-                if (spikeFreq < 0.05) {
-                    variation += 50; // Dangerous upward spike
-                } else if (spikeFreq > 0.95) {
-                    variation -= 60; // Sharp drop
-                }
-                
-                // Secondary roughness
-                variation += Math.sin(phase * Math.PI * 50) * 15;
+                variation = 50 + Math.sin(phase * Math.PI * 7) * 45 + Math.sin(phase * Math.PI * 14) * 12;
             }
             // SECTION 7: The Descent - Speed Challenge (75% - 85%)
             else if (worldProgress < 0.85) {
@@ -178,17 +160,33 @@ class Terrain {
                 finalVariation = 0; // Force completely flat, no blending
             }
             
-            // Church area (x=22000, flatten ±400px around it) 
+            // Church area (x=22000, flatten ±400px around it)
             const churchX = 22000;
             if (Math.abs(x - churchX) < 400) {
                 const churchBlend = Math.max(0, 1 - Math.abs(x - churchX) / 400);
                 finalVariation = 0; // Force completely flat, no blending
             }
+
+            // St. Margaret's church (x=24500, flatten ±400px)
+            const church2X = 24500;
+            if (Math.abs(x - church2X) < 400) {
+                finalVariation = 0;
+            }
             
-            // River area - flatten approach areas for barge crossing (wider area)
+            // River area - keep flat for hospital approach continuity
             const riverX = 13500;
             if (Math.abs(x - riverX) < 800) {
-                finalVariation = 0; // Flat terrain for river crossing
+                finalVariation = 0;
+            }
+
+            // Mountain bridge ravine (x=14920-15400)
+            // Flat approaches on both sides; deep pit creates real near-vertical cliff walls.
+            if (x >= 14000 && x < 14920) {
+                finalVariation = 0; // flat left approach
+            } else if (x >= 14920 && x < 15400) {
+                finalVariation = 0; // flat under visual ravine — player/coffin stay grounded
+            } else if (x >= 15400 && x <= 16200) {
+                finalVariation = 0; // flat right landing
             }
             
             points.push({
@@ -237,6 +235,25 @@ class Terrain {
 
         Matter.Composite.add(physics.world, bodies);
         this.matterBodies = bodies;
+        this._physics = physics;
+    }
+
+    // Swap landscape for a new chapter. Pass either a generator function (worldWidth) -> points,
+    // or pre-built points. Rebuilds Matter static bodies.
+    regenerate(generatorOrPoints, newWorldWidth) {
+        if (typeof newWorldWidth === 'number') this.worldWidth = newWorldWidth;
+        if (typeof generatorOrPoints === 'function') {
+            this.landscapePoints = generatorOrPoints(this.worldWidth);
+        } else {
+            this.landscapePoints = generatorOrPoints;
+        }
+        this.parallaxLayers = this.generateParallaxLayers();
+
+        if (this._physics && this.matterBodies) {
+            Matter.Composite.remove(this._physics.world, this.matterBodies);
+            this.matterBodies = null;
+            this.buildMatterBody(this._physics);
+        }
     }
 
     getTerrainSlopeAt(x) {
