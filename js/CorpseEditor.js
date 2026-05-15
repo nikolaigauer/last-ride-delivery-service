@@ -143,7 +143,7 @@ class CorpseEditor {
             }
         }
         
-        return this.testTerrain[0]?.groundY || 400;
+        return (this.testTerrain[0] && this.testTerrain[0].groundY) || 400;
     }
     
     setupEventListeners() {

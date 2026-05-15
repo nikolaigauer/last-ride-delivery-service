@@ -2,8 +2,8 @@
 
 class Hearse {
     constructor(x = 100, y = 280) {
-        this.x = x;        // left edge of sprite, mapped from chassis each frame
-        this.y = y;        // top of sprite, mapped from chassis each frame
+        this.x = x; // left edge of sprite, mapped from chassis each frame
+        this.y = y; // top of sprite, mapped from chassis each frame
         this.width = 210;
         this.height = 150;
 
@@ -30,12 +30,16 @@ class Hearse {
         this.chassis = null;
         this.wheelA = null; // rear (left) wheel
         this.wheelB = null; // front (right) wheel
-        this._wheelContacts = 0; // tracks ground contacts for isAirborne
+        this._wheelContacts = 0; // raw contact count from Matter events
+        this._airborneFrames = 0; // debounced no-contact frame counter
+        this._bumpCooldown = 0; // frames remaining where a new bump can't score
+        this.AIRBORNE_DEBOUNCE = 5; // need N consecutive no-contact frames to flag airborne
+        this.BUMP_COOLDOWN_FRAMES = 12; // ~200ms between bump scores
 
         // Sprite offset: chassis.position is this many pixels from sprite top-left
         // Chassis center sits ~60px below sprite top, horizontally centered
         this._chassisOffsetX = this.width / 2; // 105
-        this._chassisOffsetY = 60;
+        this._chassisOffsetY = 35;
 
         this.closedSprite = new Image();
         this.closedSprite.src = 'assets/hearse.png';
@@ -75,14 +79,18 @@ class Hearse {
 
         // Suspension constraints: soft springs connect chassis to each wheel
         const axelA = Constraint.create({
-            bodyA: this.chassis, pointA: { x: -65, y: 25 },
+            bodyA: this.chassis,
+            pointA: { x: -65, y: 25 },
             bodyB: this.wheelA,
-            stiffness: 0.6, damping: 0.5,
+            stiffness: 0.6,
+            damping: 0.5,
         });
         const axelB = Constraint.create({
-            bodyA: this.chassis, pointA: { x: 65, y: 25 },
+            bodyA: this.chassis,
+            pointA: { x: 65, y: 25 },
             bodyB: this.wheelB,
-            stiffness: 0.6, damping: 0.5,
+            stiffness: 0.6,
+            damping: 0.5,
         });
 
         Composite.add(physics.world, [this.chassis, this.wheelA, this.wheelB, axelA, axelB]);
@@ -107,23 +115,28 @@ class Hearse {
 
     _isWheelTerrainPair(pair) {
         const { bodyA, bodyB } = pair;
-        const isWheel  = (b) => b === this.wheelA || b === this.wheelB;
+        const isWheel = (b) => b === this.wheelA || b === this.wheelB;
         const isTerrain = (b) => b.label === 'terrain' || b.label === 'wall';
         return (isWheel(bodyA) && isTerrain(bodyB)) || (isWheel(bodyB) && isTerrain(bodyA));
     }
 
     _handleTerrainImpact(pair) {
-        const wheelBody = (pair.bodyA === this.wheelA || pair.bodyA === this.wheelB)
-            ? pair.bodyA : pair.bodyB;
+        // Cooldown gate: stops segment-seam chatter from rapid-firing damage on smooth driving.
+        if (this._bumpCooldown > 0) return;
+
+        const wheelBody = (pair.bodyA === this.wheelA || pair.bodyA === this.wheelB) ?
+            pair.bodyA : pair.bodyB;
         const vel = wheelBody.velocity;
         const n = pair.collision.normal;
         const impactSpeed = Math.abs(vel.x * n.x + vel.y * n.y);
 
+        // Threshold raised from 3 → 6. Below this is suspension chatter, not a real bump.
         if (impactSpeed > 3) {
             const multiplier = Math.max(0.5, Math.min(2.0, impactSpeed / 5));
             const bumpDamage = Math.floor(this.damagePerBump * multiplier);
             this.bumpCounter++;
             this.health = Math.max(0, this.health - bumpDamage);
+            this._bumpCooldown = this.BUMP_COOLDOWN_FRAMES;
             console.log(`Impact bump! speed=${impactSpeed.toFixed(1)} dmg=${bumpDamage} count=${this.bumpCounter}/${this.bumpThreshold}`);
 
             if (window.game && window.game.coffin && window.game.coffin.inHearse && multiplier > 1.4) {
@@ -155,7 +168,7 @@ class Hearse {
 
         if (player.inVehicle) {
             const rightPressed = input.isKeyPressed('ArrowRight');
-            const leftPressed  = input.isKeyPressed('ArrowLeft');
+            const leftPressed = input.isKeyPressed('ArrowLeft');
 
             if (rightPressed || leftPressed) {
                 // Motor: set wheel angular velocity; friction with terrain propels chassis
@@ -171,7 +184,7 @@ class Hearse {
             }
 
             if (rightPressed) this.lastDirection = 'right';
-            if (leftPressed)  this.lastDirection = 'left';
+            if (leftPressed) this.lastDirection = 'left';
         }
 
         // Clamp chassis rotation so the hearse can't flip (matches old ±0.5 rad limit)
@@ -180,10 +193,21 @@ class Hearse {
             Matter.Body.setAngularVelocity(this.chassis, 0);
         }
 
+        // Tick bump cooldown
+        if (this._bumpCooldown > 0) this._bumpCooldown--;
+
+        // Debounced airborne flag — wheels chatter at terrain-segment seams, so a single
+        // frame of zero contact doesn't mean we're airborne. Require N consecutive frames.
+        if (this._wheelContacts === 0) {
+            this._airborneFrames = Math.min(this._airborneFrames + 1, 60);
+        } else {
+            this._airborneFrames = 0;
+        }
+
         // Read state back from Matter (external systems read these properties)
-        this.velocity    = this.chassis.velocity.x;
-        this.tiltAngle   = this.chassis.angle;
-        this.isAirborne  = this._wheelContacts === 0;
+        this.velocity = this.chassis.velocity.x;
+        this.tiltAngle = this.chassis.angle;
+        this.isAirborne = this._airborneFrames >= this.AIRBORNE_DEBOUNCE;
 
         // Map chassis center → sprite top-left
         this.x = this.chassis.position.x - this._chassisOffsetX;
@@ -199,9 +223,9 @@ class Hearse {
         }
         const newCX = worldX + this._chassisOffsetX;
         const dx = newCX - this.chassis.position.x;
-        const newCY = worldY !== undefined
-            ? worldY + this._chassisOffsetY
-            : this.chassis.position.y;
+        const newCY = worldY !== undefined ?
+            worldY + this._chassisOffsetY :
+            this.chassis.position.y;
         const dy = newCY - this.chassis.position.y;
 
         Matter.Body.setPosition(this.chassis, { x: newCX, y: newCY });
@@ -209,7 +233,7 @@ class Hearse {
         Matter.Body.setPosition(this.wheelB, { x: this.wheelB.position.x + dx, y: this.wheelB.position.y + dy });
 
         // Zero velocities so the car doesn't ghost-launch after teleport
-        for (const body of [this.chassis, this.wheelA, this.wheelB]) {
+        for (const body of[this.chassis, this.wheelA, this.wheelB]) {
             Matter.Body.setVelocity(body, { x: 0, y: 0 });
             Matter.Body.setAngularVelocity(body, 0);
         }
@@ -246,13 +270,13 @@ class Hearse {
         if (!coffin.inHearse || !this.doorOpen) return false;
         const slope = terrain.getTerrainSlopeAt(this.x + this.width / 2);
         const SLIDE_THRESHOLD = 0.05;
-        const TILT_THRESHOLD  = 0.15;
+        const TILT_THRESHOLD = 0.15;
         const terrainForce = Math.abs(slope);
-        const tiltForce    = Math.abs(this.tiltAngle);
+        const tiltForce = Math.abs(this.tiltAngle);
         const combinedForce = Math.max(terrainForce, tiltForce * 0.7);
         return this.doorOpenedByBump ||
-               (combinedForce > SLIDE_THRESHOLD && this.doorTimer === 0) ||
-               (tiltForce > TILT_THRESHOLD && this.doorTimer === 0);
+            (combinedForce > SLIDE_THRESHOLD && this.doorTimer === 0) ||
+            (tiltForce > TILT_THRESHOLD && this.doorTimer === 0);
     }
 
     getBackDoorDistance(playerX, playerWidth) {
@@ -266,11 +290,11 @@ class Hearse {
     draw(ctx, cameraX, player, coffin, corpse) {
         const screenX = this.x - cameraX;
         if (screenX > -this.width && screenX < ctx.canvas.width + this.width) {
-            const playerCenterX     = player.x + player.width / 2;
-            const distanceToHearse  = Math.abs(player.x - this.x);
+            const playerCenterX = player.x + player.width / 2;
+            const distanceToHearse = Math.abs(player.x - this.x);
             const distanceToBackDoor = Math.abs(playerCenterX - this.x);
 
-            const canUnloadCoffin    = coffin.inHearse && !player.inVehicle && distanceToBackDoor < 40;
+            const canUnloadCoffin = coffin.inHearse && !player.inVehicle && distanceToBackDoor < 40;
             const shouldGlowBackDoor = (coffin.isPickedUp && !player.inVehicle && distanceToBackDoor < 40) || canUnloadCoffin;
             const shouldGlowFrontDoor = !coffin.isPickedUp && !corpse.isPickedUp && distanceToHearse < 80 && !player.inVehicle && !canUnloadCoffin;
 

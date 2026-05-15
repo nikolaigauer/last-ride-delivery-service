@@ -122,9 +122,9 @@ class LevelManager {
                             y: obj.y,
                             width: obj.width || 40,
                             height: obj.height || 20,
-                            severity: obj.properties?.severity || 1,
-                            bumpValue: obj.properties?.bumpValue || 1,
-                            imageIndex: obj.properties?.imageIndex || 0
+                            severity: (obj.properties && obj.properties.severity) || 1,
+                            bumpValue: (obj.properties && obj.properties.bumpValue) || 1,
+                            imageIndex: (obj.properties && obj.properties.imageIndex) || 0
                         };
                         this.game.potholeManager.potholes.push(pothole);
                     }
@@ -138,10 +138,10 @@ class LevelManager {
         
         this.isLevelComplete = true;
         
-        console.log(`🎉 Level completed: ${this.currentLevel?.name || 'Unknown'}`);
-        
+        console.log(`🎉 Level completed: ${(this.currentLevel && this.currentLevel.name) || 'Unknown'}`);
+
         // Check if there's a next level
-        if (this.currentLevel?.nextLevel) {
+        if (this.currentLevel && this.currentLevel.nextLevel) {
             this.loadNextLevel(this.currentLevel.nextLevel);
         } else {
             // Default progression
@@ -271,7 +271,7 @@ class LevelManager {
         this.transitionProgress = 0;
         
         // Start smooth camera pan to new level area
-        const targetX = levelData.spawn?.x || 0;
+        const targetX = (levelData.spawn && levelData.spawn.x) || 0;
         this.startCameraX = this.game.cameraX;
         this.targetCameraX = Math.max(0, targetX - this.game.canvas.width / 2);
     }

@@ -1,0 +1,14 @@
+{
+  "// note": "Project-level overrides. The Beautify/JS-Beautify extension mangles optional-chaining (?.) into '? .' on save, which is a syntax error. Disabling format-on-save here prevents that. Use Format Document (Shift+Alt+F) manually if you want to format intentionally.",
+  "editor.formatOnSave": false,
+  "[javascript]": {
+    "editor.formatOnSave": false,
+    "editor.defaultFormatter": null
+  },
+  "[html]": {
+    "editor.formatOnSave": false
+  },
+  "[css]": {
+    "editor.formatOnSave": false
+  }
+}

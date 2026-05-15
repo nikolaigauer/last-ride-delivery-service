@@ -820,7 +820,7 @@ class LevelEditor {
         this.game.levelManager.loadLevel(this.currentLevel);
         
         // Update editor's camera to follow the new level
-        this.game.cameraX = this.currentLevel.spawn?.x - 200 || 0;
+        this.game.cameraX = ((this.currentLevel.spawn && this.currentLevel.spawn.x) || 200) - 200;
         this.game.targetCameraX = this.game.cameraX;
         
         console.log(`✅ Level applied to game: ${this.currentLevel.name}`);
