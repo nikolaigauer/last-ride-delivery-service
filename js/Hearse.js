@@ -463,18 +463,6 @@ class Hearse {
             // Open hood — drawn inside the rotated context so it tilts with the hearse
             this._drawOpenHood(ctx, screenX);
 
-            if (this.isAirborne) {
-                ctx.save();
-                ctx.strokeStyle = '#ff6600';
-                ctx.lineWidth = 3;
-                ctx.setLineDash([5, 5]);
-                ctx.strokeRect(screenX - 5, this.y - 5, this.width + 10, this.height + 10);
-                ctx.setLineDash([]);
-                ctx.fillStyle = '#ff6600';
-                ctx.font = 'bold 14px Arial';
-                ctx.fillText('✈ AIRBORNE!', screenX, this.y - 10);
-                ctx.restore();
-            }
 
             if (shouldGlowBackDoor && sprite && sprite.complete && sprite.naturalWidth > 0) {
                 for (let i = 0; i < 3; i++) {
