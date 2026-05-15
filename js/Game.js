@@ -6,6 +6,7 @@ class StickmanGame {
         this.ctx = this.canvas.getContext('2d');
 
         // Initialize all game systems
+        this.physics = new Physics();
         this.input = new InputManager();
         this.terrain = new Terrain(25000); // Epic journey world size
         this.showDebug = true; // Debug toggle state
@@ -89,6 +90,9 @@ class StickmanGame {
     }
 
     update() {
+        // Step Matter.js engine (no bodies yet — Phase 1 foundation)
+        this.physics.step();
+
         // Editor toggles only respond in dev mode (?dev=1)
         if (this.isDevMode) {
             if (this.input.isKeyPressed('KeyE')) {
