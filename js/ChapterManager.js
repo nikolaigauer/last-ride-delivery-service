@@ -151,8 +151,8 @@ class ChapterManager {
                 if (!game.monologue) game.monologue = new MonologueSystem();
                 game.monologue.setSnippets([
                     { triggerX: 1800, text: "Some days the road just keeps going." },
-                    { triggerX: 3500, text: "Wrong church. Right corpse. Bureaucracy at work." },
-                    { triggerX: 5200, text: "Should've been a baker." },
+                    { triggerX: 3500, text: "Some days it's the wrong church, right corpse. Other days it's the right church, wrong corpse." },
+                    { triggerX: 5200, text: "Should've been a baker, or a butcher." },
                     { triggerX: 9500, text: "Always something. Always something between you and where you're supposed to be." },
                     { triggerX: 13000, text: "St. Margaret's. Better be the right one this time." },
                 ]);
