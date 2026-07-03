@@ -39,15 +39,16 @@ class Hearse {
         // Overheat mechanic — quadratic strain model:
         // heat += (|velocity| - HEAT_TRIGGER_VEL)² × HEAT_RATE per frame
         // → cruising near threshold is nearly free; redlining accumulates fast.
-        // Calibration (with maxSpeed=12): speed 9 → ~3.5min to overheat,
-        // speed 11 → ~23s, speed 12 → ~13s. Sustained top-end is what kills you.
+        // Calibration (with maxSpeed=12, 60fps): speed 9 → ~7min to overheat,
+        // speed 11 → ~70s, speed 12 → ~45s. Sustained top-end is what kills you;
+        // moderate driving never does.
         this.heat = 0;
         this.maxHeat = 100;
         this.overheated = false;
         this.HEAT_TRIGGER_VEL = 7; // base velocity below which engine is comfortable
-        this.HEAT_RATE = 0.27; // coefficient on strain² — tune this for difficulty
-        this.PASSIVE_COOL_RATE = 0.009; // heat shed per frame at idle/slow
-        this.INTERACTIVE_COOL_RATE = 0.18; // heat shed per frame with player at hood (~3.5×)
+        this.HEAT_RATE = 0.0015; // coefficient on strain² — tune this for difficulty
+        this.PASSIVE_COOL_RATE = 0.03; // heat shed per frame at idle/slow (~55s full recovery)
+        this.INTERACTIVE_COOL_RATE = 0.12; // heat shed per frame with player at hood (~4×)
         this.HEAT_RECOVERY_THRESHOLD = 40; // overheat clears once heat drops below this
         this._playerAtHood = false;
         this.steamParticles = [];
@@ -146,9 +147,10 @@ class Hearse {
         const n = pair.collision.normal;
         const impactSpeed = Math.abs(vel.x * n.x + vel.y * n.y);
 
-        // Threshold raised from 3 → 6. Below this is suspension chatter, not a real bump.
-        if (impactSpeed > 3) {
-            const multiplier = Math.max(0.5, Math.min(2.0, impactSpeed / 5));
+        // Below this is suspension chatter, not a real bump. (The old value of 3
+        // scored bumps on gentle rolling hills — the door popped from normal driving.)
+        if (impactSpeed > 6) {
+            const multiplier = Math.max(0.5, Math.min(2.0, impactSpeed / 8));
             const bumpDamage = Math.floor(this.damagePerBump * multiplier);
             this.bumpCounter++;
             this.health = Math.max(0, this.health - bumpDamage);
