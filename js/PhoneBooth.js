@@ -47,11 +47,13 @@ class PhoneBooth {
         return this.getMissionBriefing();
     }
 
+    // Deliberately vague about which church — the wrong-church gag in episode 1
+    // only works if dispatch never named it.
     getMissionBriefing() {
         return {
             title: "Dispatch",
-            message: "Miller's Funeral Home. Pickup. Cemetery Hill, far east.\n\nLong road. Watch the canyon. Don't lose him again.\n\nTry not to make it two funerals.",
-            instruction: "→ Drive east"
+            message: "Pickup at the county hospital, east of here. They'll have him ready.\n\nDelivery's the church out past the canyon. Long road. Don't lose him again.\n\nTry not to make it two funerals.",
+            instruction: "Drive east."
         };
     }
 

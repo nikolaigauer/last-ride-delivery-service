@@ -99,13 +99,14 @@ class StickmanGame {
     }
 
     // Episode 1 result — coffin's at the wrong church, deliveryBooth starts ringing.
+    // The card is delayed so the drop plays out on screen before the cut to black.
     showDeliveryResult(deliveryResult) {
         const completion = {
-            title: `Drop Recorded — Score: ${deliveryResult.score}/100`,
-            message: `${deliveryResult.message}\n\nHealth Status:\nHearse: ${deliveryResult.hearseHealth || 0}/100\nCoffin: ${deliveryResult.coffinHealth || 0}/100\nCorpse: ${deliveryResult.corpseHealth || 0}/100`,
-            instruction: "→ The phone is ringing. Walk east."
+            title: "Delivered — St. Mary's",
+            message: deliveryResult.message,
+            instruction: "A phone is ringing, further east."
         };
-        this.showMissionBriefing(completion, 1200);
+        this.showMissionBriefing(completion, 1200, 110);
         this.deliveryBooth.isRinging = true;
         console.log(`🕊️ Episode 1 drop complete. Score: ${deliveryResult.score}/100`);
     }
@@ -115,7 +116,7 @@ class StickmanGame {
         const briefing = {
             title: "Dispatch — Long Pause",
             message: "Yeah... about that drop.\n\nThat was St. Mary's, wasn't it. Family's at St. Margaret's. Different church. They sound similar, I know.\n\nGrab the casket. Head east. Don't make a thing of it.",
-            instruction: "→ Pick the coffin back up. Drive east to St. Margaret's."
+            instruction: "Pick the casket back up. East, to St. Margaret's."
         };
         this.showMissionBriefing(briefing);
         this.deliveryBooth.isRinging = false;
@@ -127,11 +128,11 @@ class StickmanGame {
     // Episode 2 result — final delivery, dispatcher will call again at the closing phone.
     showFinalCompletion(deliveryResult) {
         const completion = {
-            title: `Delivery Complete — Score: ${deliveryResult.score}/100`,
-            message: `${deliveryResult.message}\n\nThat's the one. Family's relieved. Mostly.`,
-            instruction: "→ Phone is ringing further east. Walk to it."
+            title: "Delivered — St. Margaret's",
+            message: `${deliveryResult.message}\n\nThe right church, this time.`,
+            instruction: "The phone again. Further east."
         };
-        this.showMissionBriefing(completion, 1200);
+        this.showMissionBriefing(completion, 1200, 110);
         console.log(`🕯️ Chapter 2 drop complete. Score: ${deliveryResult.score}/100`);
     }
 
@@ -140,7 +141,7 @@ class StickmanGame {
         const briefing = {
             title: "Dispatch — End of Shift",
             message: "Yeah, that's the one. Good work.\n\nGo home. Wash the hearse. There'll be another call.\n\nThere's always another call.",
-            instruction: "🕯️ End of demo."
+            instruction: "End of demo."
         };
         this.showMissionBriefing(briefing);
         if (this.closingPhone) {
@@ -617,13 +618,13 @@ class StickmanGame {
             ctx.fillStyle = `rgba(0,0,0,${this.deathAlpha})`;
             ctx.fillRect(0, 0, this.canvas.width, this.canvas.height);
             if (this.deathState === 'dead') {
-                ctx.fillStyle = 'rgba(255,255,255,0.9)';
-                ctx.font = 'bold 28px "Special Elite", monospace';
+                ctx.fillStyle = 'rgba(255,255,255,0.92)';
+                ctx.font = '26px Georgia, serif';
                 ctx.textAlign = 'center';
                 ctx.fillText('You fell.', this.canvas.width / 2, this.canvas.height / 2 - 16);
-                ctx.font = '16px "Special Elite", monospace';
-                ctx.fillStyle = 'rgba(255,255,255,0.65)';
-                ctx.fillText('press SPACE to try again', this.canvas.width / 2, this.canvas.height / 2 + 16);
+                ctx.font = 'italic 15px Georgia, serif';
+                ctx.fillStyle = 'rgba(255,255,255,0.6)';
+                ctx.fillText('press space to try again', this.canvas.width / 2, this.canvas.height / 2 + 20);
                 ctx.textAlign = 'left';
             }
         }
@@ -707,62 +708,28 @@ class StickmanGame {
         requestAnimationFrame(() => this.gameLoop());
     }
 
-    // Mission briefing is now an HTML overlay (Special Elite typewriter style).
-    // See #mission-overlay in index.html and styles.css.
-    showMissionBriefing(mission, autoDismissAfterRevealFrames = 900) {
+    // Mission briefing is an HTML intertitle — full-frame white-on-black title card
+    // (see #mission-overlay in index.html / styles.css). Text appears whole: hard
+    // cut in, hard cut out. delayFrames lets the scene (coffin spilling out at the
+    // church) play on screen before the cut to black.
+    showMissionBriefing(mission, autoDismissFrames = 900, delayFrames = 0) {
+        if (delayFrames > 0) {
+            this._pendingBriefing = { mission, autoDismissFrames, framesLeft: delayFrames };
+            return;
+        }
         this.missionBriefing = mission;
-        this.briefingTimer = 0; // Countdown does not start until typewriter reveal finishes.
-        this._briefingAutoDismiss = autoDismissAfterRevealFrames;
+        this.briefingTimer = autoDismissFrames;
         console.log(`Mission received: ${mission.message}`);
 
         const el = document.getElementById('mission-overlay');
         if (!el) return;
-
-        const titleEl = el.querySelector('.dispatch-title');
-        const bodyEl = el.querySelector('.dispatch-body');
-        const instEl = el.querySelector('.dispatch-instruction');
-
-        titleEl.textContent = mission.title || '';
-        bodyEl.textContent = '';
-        instEl.textContent = '';
+        el.querySelector('.dispatch-title').textContent = mission.title || '';
+        el.querySelector('.dispatch-body').textContent = mission.message || '';
+        el.querySelector('.dispatch-instruction').textContent = mission.instruction || '';
         el.classList.remove('hidden');
-
-        if (this._typewriterTimer) {
-            clearInterval(this._typewriterTimer);
-            this._typewriterTimer = null;
-        }
-
-        const fullBody = mission.message || '';
-        const instruction = mission.instruction || '';
-        let i = 0;
-        const charDelayMs = 28;
-
-        this._typewriterTimer = setInterval(() => {
-            if (i < fullBody.length) {
-                i++;
-                bodyEl.textContent = fullBody.slice(0, i);
-            } else {
-                clearInterval(this._typewriterTimer);
-                this._typewriterTimer = null;
-                instEl.textContent = instruction;
-                this.briefingTimer = this._briefingAutoDismiss;
-            }
-        }, charDelayMs);
     }
 
     dismissMissionBriefing() {
-        // If still typing, the first press completes the text instead of dismissing.
-        if (this._typewriterTimer) {
-            clearInterval(this._typewriterTimer);
-            this._typewriterTimer = null;
-            const el = document.getElementById('mission-overlay');
-            if (el && this.missionBriefing) {
-                el.querySelector('.dispatch-body').textContent = this.missionBriefing.message || '';
-                el.querySelector('.dispatch-instruction').textContent = this.missionBriefing.instruction || '';
-            }
-            this.briefingTimer = this._briefingAutoDismiss;
-            return;
-        }
         const el = document.getElementById('mission-overlay');
         if (el) el.classList.add('hidden');
         this.missionBriefing = null;
@@ -770,6 +737,15 @@ class StickmanGame {
     }
 
     updateMissionBriefing() {
+        if (this._pendingBriefing) {
+            this._pendingBriefing.framesLeft--;
+            if (this._pendingBriefing.framesLeft <= 0) {
+                const { mission, autoDismissFrames } = this._pendingBriefing;
+                this._pendingBriefing = null;
+                this.showMissionBriefing(mission, autoDismissFrames);
+            }
+            return;
+        }
         if (this.missionBriefing && this.briefingTimer > 0) {
             this.briefingTimer--;
             if (this.briefingTimer === 0) {

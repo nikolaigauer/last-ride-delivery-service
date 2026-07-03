@@ -67,7 +67,7 @@ class MonologueSystem {
 
         ctx.save();
         ctx.globalAlpha = alpha;
-        ctx.font = 'italic 18px "Special Elite", serif';
+        ctx.font = 'italic 17px Georgia, serif';
         ctx.textAlign = 'center';
         ctx.textBaseline = 'middle';
 

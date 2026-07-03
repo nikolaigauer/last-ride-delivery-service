@@ -6,7 +6,7 @@ body {
     justify-content: center;
     align-items: center;
     min-height: 100vh;
-    font-family: Arial, sans-serif;
+    font-family: Georgia, 'Times New Roman', serif;
 }
 
 .game-container {
@@ -21,23 +21,22 @@ canvas {
     display: block;
 }
 
+/* Intertitle: silent-film title card. Plain white on black, hard cut, no ornament. */
 #mission-overlay {
     position: absolute;
-    top: 32px;
-    right: 32px;
-    width: 340px;
-    padding: 18px 22px 14px;
+    inset: 2px;
     box-sizing: border-box;
-    font-family: 'Special Elite', 'Courier Prime', 'Courier New', monospace;
-    color: #1a1a1a;
-    background: rgba(250, 248, 240, 0.94);
-    border: 1.5px solid #1a1a1a;
-    box-shadow: 2px 2px 0 rgba(0, 0, 0, 0.08);
+    display: flex;
+    flex-direction: column;
+    justify-content: center;
+    align-items: center;
+    padding: 40px 90px;
+    font-family: Georgia, 'Times New Roman', serif;
+    color: #fff;
+    background: #000;
     z-index: 10;
     pointer-events: none;
-    line-height: 1.45;
-    font-size: 15px;
-    letter-spacing: 0.2px;
+    text-align: center;
 }
 
 #mission-overlay.hidden {
@@ -45,59 +44,50 @@ canvas {
 }
 
 #mission-overlay .dispatch-header {
-    font-size: 10px;
-    letter-spacing: 6px;
-    text-align: center;
-    color: #6a6a6a;
-    margin-bottom: 14px;
-    text-transform: uppercase;
+    display: none;
 }
 
 #mission-overlay .dispatch-title {
-    font-size: 19px;
+    font-size: 13px;
     font-weight: normal;
     text-transform: uppercase;
-    letter-spacing: 1.5px;
-    margin-bottom: 14px;
-    padding-bottom: 8px;
-    border-bottom: 1px solid #1a1a1a;
-    min-height: 1.45em;
+    letter-spacing: 7px;
+    color: rgba(255, 255, 255, 0.55);
+    margin-bottom: 26px;
 }
 
 #mission-overlay .dispatch-body {
-    margin-bottom: 14px;
+    font-size: 21px;
+    line-height: 1.75;
     white-space: pre-line;
-    min-height: 1.45em;
+    max-width: 640px;
 }
 
 #mission-overlay .dispatch-instruction {
     font-style: italic;
-    color: #1a1a1a;
-    border-top: 1px dashed #999;
-    padding-top: 10px;
-    margin-bottom: 10px;
-    min-height: 1em;
+    font-size: 16px;
+    color: rgba(255, 255, 255, 0.75);
+    margin-top: 30px;
 }
 
 #mission-overlay .dispatch-instruction:empty {
-    border-top-color: transparent;
-    padding-top: 0;
-    margin-bottom: 0;
+    margin-top: 0;
 }
 
 #mission-overlay .dispatch-dismiss {
+    position: absolute;
+    bottom: 22px;
+    left: 0;
+    right: 0;
     font-size: 10px;
-    letter-spacing: 2px;
-    text-align: right;
-    color: #888;
+    letter-spacing: 3px;
+    color: rgba(255, 255, 255, 0.35);
     text-transform: uppercase;
 }
 
 #mission-overlay kbd {
     font-family: inherit;
-    border: 1px solid #888;
-    padding: 0 4px;
-    border-radius: 2px;
+    letter-spacing: inherit;
 }
 
 .controls {

@@ -118,17 +118,18 @@ class Church {
         };
     }
 
+    // Player-facing verdicts stay prose — dispatch never says a number.
     getDeliveryMessage(score) {
         if (score >= 90) {
-            return "Exemplary service! The family was deeply moved by your professionalism.";
+            return "Not a scratch on him. Nobody says thank you in this business. Still.";
         } else if (score >= 70) {
-            return "Good delivery. The family appreciates your careful handling.";
+            return "He arrived more or less as he left. That's all anyone can ask.";
         } else if (score >= 50) {
-            return "Adequate service. Some minor concerns were raised.";
+            return "There were remarks about the casket. Nothing in writing.";
         } else if (score >= 30) {
-            return "Rough delivery. The family was... understanding about the condition.";
+            return "The family was... understanding about the condition.";
         } else {
-            return "We're getting calls. Please handle our clients with more dignity.";
+            return "We're getting calls about you. Do better.";
         }
     }
 
