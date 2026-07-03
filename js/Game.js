@@ -71,9 +71,7 @@ class StickmanGame {
         // Dev tools (editors) only load with ?dev=1 query string
         this.isDevMode = typeof window !== 'undefined' && window.location.search.includes('dev=1');
         const noopEditor = { isActive: false, update: () => {}, draw: () => {}, toggle: () => {} };
-        this.levelEditor = this.isDevMode ? new LevelEditor(this) : noopEditor;
         this.corpseEditor = this.isDevMode ? new CorpseEditor(this) : noopEditor;
-        this.levelManager = new LevelManager(this);
         this.chapterManager = new ChapterManager(this);
         
         // Expose level management commands to console for testing
@@ -156,12 +154,8 @@ class StickmanGame {
         // Step Matter.js engine (no bodies yet — Phase 1 foundation)
         this.physics.step();
 
-        // Editor toggles only respond in dev mode (?dev=1)
+        // Editor toggle only responds in dev mode (?dev=1)
         if (this.isDevMode) {
-            if (this.input.isKeyPressed('KeyE')) {
-                this.levelEditor.toggle();
-                this.input.clearKey('KeyE');
-            }
             if (this.input.isKeyPressed('KeyC')) {
                 this.corpseEditor.toggle();
                 this.input.clearKey('KeyC');
@@ -175,12 +169,7 @@ class StickmanGame {
             console.log(`Debug panel ${this.showDebug ? 'enabled' : 'disabled'}`);
         }
 
-        // Skip normal game updates if any editor is active
-        if (this.levelEditor.isActive) {
-            this.levelEditor.update();
-            return;
-        }
-        
+        // Skip normal game updates if the editor is active
         if (this.corpseEditor.isActive) {
             this.corpseEditor.update();
             return;
@@ -347,9 +336,6 @@ class StickmanGame {
 
         // Update camera
         this.updateCamera();
-
-        // Update level manager for transitions
-        this.levelManager.update(16.67); // Approximate 60fps deltaTime
 
         // Update mission briefing timer
         this.updateMissionBriefing();
@@ -596,9 +582,6 @@ class StickmanGame {
         this.drawUI();
         this.drawDebug();
 
-        // Draw level editor on top of everything
-        this.levelEditor.draw(this.ctx, this.cameraX);
-        
         // Draw corpse editor on top of everything
         this.corpseEditor.draw(this.ctx, this.cameraX);
 
@@ -633,8 +616,8 @@ class StickmanGame {
     }
 
     drawDebug() {
-        // Skip debug panel when editor is active to avoid overlap or when disabled
-        if (this.levelEditor.isActive || !this.showDebug) return;
+        // Skip debug panel when disabled
+        if (!this.showDebug) return;
         
         // Debug panel in top-left
         this.ctx.fillStyle = 'rgba(0, 0, 0, 0.7)';
@@ -748,86 +731,16 @@ class StickmanGame {
     
     exposeConsoleCommands() {
         console.log(`
-🎮 LEVEL PROGRESSION CONSOLE COMMANDS:
-
-📂 Level Management:
-  game.createLevel('level_01', 'Tutorial Level')          - Create new level
-  game.saveCurrentLevel('level_01')                        - Save current state as level
-  game.loadLevel('level_01')                               - Load level from storage
-  game.linkLevels('level_01', 'level_02')                 - Link levels in progression
-  
-🔍 Level Inspection:
-  game.listStoredLevels()                                  - Show all levels in storage
-  game.getCurrentLevelInfo()                               - Show current level details
-  
-🎯 Testing & Navigation:
-  game.forceCompleteLevel()                                - Force trigger level completion
-  game.jumpToChapter(5000)                                 - Jump camera to x position
-  game.teleportToHospital()                                - Teleport to hospital (pickup)
-  game.teleportToCanyon()                                  - Teleport to great canyon (50% point)
-  game.teleportToMountains()                               - Teleport to mountain peaks (67% point)
-  game.teleportToEnd()                                     - Teleport to church for delivery
-  
-🗑️ Cleanup:
-  game.clearAllLevels()                                    - Clear all levels from storage
-  
-💡 Epic Journey Sections:
-  🏥 Hospital Pickup: 2500x        🏔️ Canyon Challenge: 12500x
-  ⛰️ Mountain Peaks: 17000x       🏛️ Church Delivery: 22000x
+🎮 TESTING CONSOLE COMMANDS:
+  game.jumpToChapter(5000)     - Jump camera to x position
+  game.teleportToHospital()    - Hospital pickup (x=2500)
+  game.teleportToCanyon()      - Great canyon (~55%)
+  game.teleportToMountains()   - Mountain peaks (~67%)
+  game.teleportToEnd()         - Church delivery (x=22000)
+  game.setCorpseScale(1.2)     - Resize corpse
         `);
     }
-    
-    // Console command implementations
-    createLevel(id, name) {
-        this.levelEditor.setLevelId(id);
-        this.levelEditor.setLevelName(name);
-        console.log(`✨ Created level: ${id} (${name})`);
-        console.log('💡 Use the level editor (press E) to design your level, then call game.saveCurrentLevel()');
-    }
-    
-    saveCurrentLevel(id) {
-        if (id) {
-            this.levelEditor.setLevelId(id);
-        }
-        this.levelEditor.saveLevel();
-    }
-    
-    loadLevel(levelId) {
-        this.levelManager.loadNextLevel(levelId);
-    }
-    
-    linkLevels(currentId, nextId) {
-        this.levelEditor.linkLevels(currentId, nextId);
-        this.levelEditor.saveLevel();
-        console.log(`🔗 Linked and saved: ${currentId} → ${nextId}`);
-    }
-    
-    listStoredLevels() {
-        const levels = this.levelManager.getStoredLevels();
-        console.log('📋 Stored Levels:');
-        levels.forEach(level => {
-            console.log(`  - ${level.id}: ${level.name}`);
-        });
-        if (levels.length === 0) {
-            console.log('  (No levels found in storage)');
-        }
-    }
-    
-    getCurrentLevelInfo() {
-        const level = this.levelManager.currentLevel || this.levelEditor.currentLevel;
-        if (level) {
-            console.log(`📍 Current Level: ${level.id} (${level.name})`);
-            console.log(`   Next: ${level.nextLevel || 'None'}`);
-            console.log(`   Objects: ${(level.objects && level.objects.length) || 0}`);
-        } else {
-            console.log('ℹ️ No current level loaded');
-        }
-    }
-    
-    forceCompleteLevel() {
-        this.levelManager.completeLevel();
-    }
-    
+
     jumpToChapter(x) {
         this.cameraX = x - this.canvas.width / 2;
         this.targetCameraX = this.cameraX;
@@ -862,9 +775,5 @@ class StickmanGame {
         this.hearse.teleportTo(this.church.x - 300);
         this.jumpToChapter(this.church.x - 200);
         console.log('🏛️ Teleported to church for delivery testing');
-    }
-    
-    clearAllLevels() {
-        this.levelManager.clearStoredLevels();
     }
 }

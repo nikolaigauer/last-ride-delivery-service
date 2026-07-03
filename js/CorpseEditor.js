@@ -159,11 +159,6 @@ class CorpseEditor {
         this.isActive = !this.isActive;
         
         if (this.isActive) {
-            // Close level editor if it's open
-            if (this.game.levelEditor && this.game.levelEditor.isActive) {
-                this.game.levelEditor.toggle();
-            }
-            
             console.log('🧟 Entering corpse editor mode');
             this.enterCorpseEditor();
         } else {
