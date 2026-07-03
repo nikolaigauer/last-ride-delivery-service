@@ -262,7 +262,6 @@ class StickmanGame {
                 const coffinMoved = (Math.abs(this.coffin.x - this.corpse.x) > 1 || Math.abs(this.coffin.y - this.corpse.y) > 1);
                 if (coffinMoved) {
                     this.corpse.moveToPosition(this.coffin.x, this.coffin.y);
-                    console.log(`Moving corpse with coffin to: ${this.coffin.x.toFixed(1)}, ${this.coffin.y.toFixed(1)}`);
                 }
             }
         }
@@ -285,7 +284,6 @@ class StickmanGame {
 
             // If corpse is in coffin, move it with the coffin
             if (this.corpse.inCoffin) {
-                console.log(`🚨 MOVING CORPSE WITH CARRIED COFFIN to: ${this.coffin.x.toFixed(1)}, ${this.coffin.y.toFixed(1)}`);
                 this.corpse.moveToPosition(this.coffin.x, this.coffin.y);
             }
         }
@@ -588,8 +586,6 @@ class StickmanGame {
             this.corpse.draw(this.ctx, this.cameraX, this.player, this.coffin);
             // Draw detached head separately with player reference for proximity glow
             this.corpse.drawDetachedHead(this.ctx, this.cameraX, this.player);
-        } else {
-            console.log(`🚨 CORPSE NOT ACTIVE! Active: ${this.corpse.isActive}`);
         }
         if (this.coffin.isActive) {
             this.coffin.draw(this.ctx, this.cameraX, this.player, this.corpse);
@@ -632,21 +628,8 @@ class StickmanGame {
     }
 
     drawUI() {
-        // Show bump counter when in vehicle
-        if (this.player.inVehicle) {
-            this.ctx.fillStyle = '#ff0000';
-            this.ctx.font = '12px Arial';
-            this.ctx.fillText(
-                `Bumps: ${this.hearse.bumpCounter}/${this.hearse.bumpThreshold}`,
-                10, 390
-            );
-
-            if (this.hearse.doorOpen) {
-                this.ctx.fillStyle = '#ff6600';
-                this.ctx.font = '14px Arial';
-                this.ctx.fillText('DOOR OPEN!', 10, 370);
-            }
-        }
+        // Deliberately empty: damage state is told diegetically (door sprite,
+        // steam, tilt) and numerically only in the debug panel (D key).
     }
 
     drawDebug() {

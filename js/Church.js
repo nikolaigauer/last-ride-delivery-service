@@ -281,16 +281,17 @@ class Church {
             this.drawInkChurch(ctx, screenX);
             ctx.shadowBlur = 0;
 
-            // Draw delivery area with glow when hearse is positioned correctly
+            // Delivery area marker — ink only: solid-dark dashes when the hearse
+            // is placed right, faint dashes while it isn't.
             ctx.shadowBlur = 0; // Reset shadow
             if (isHearseInDeliveryArea) {
-                ctx.strokeStyle = '#00ff00';
-                ctx.lineWidth = 3;
-                ctx.setLineDash([10, 10]);
-            } else {
-                ctx.strokeStyle = '#ffaa00';
+                ctx.strokeStyle = '#000';
                 ctx.lineWidth = 2;
-                ctx.setLineDash([5, 5]);
+                ctx.setLineDash([12, 7]);
+            } else {
+                ctx.strokeStyle = 'rgba(0, 0, 0, 0.3)';
+                ctx.lineWidth = 2;
+                ctx.setLineDash([5, 7]);
             }
             
             ctx.strokeRect(deliveryAreaScreenX, this.deliveryAreaY, this.deliveryAreaWidth, this.deliveryAreaHeight);
@@ -298,26 +299,17 @@ class Church {
 
             // Show interaction prompts
             ctx.shadowBlur = 0;
-            ctx.font = 'bold 14px Arial';
 
             if (canDeliver && !this.hasReceivedDelivery) {
-                ctx.fillStyle = '#00ff00';
-                ctx.fillText('SPACEBAR: Complete Delivery', screenX + this.width/2 - 80, this.y - 20);
+                Utils.drawPrompt(ctx, 'space — deliver', screenX + this.width / 2, this.y - 16);
             } else if (isHearseInDeliveryArea && (!coffin.inHearse || !corpse.inCoffin)) {
-                ctx.fillStyle = '#ff6600';
                 if (!coffin.inHearse) {
-                    ctx.fillText('Load coffin into hearse first', screenX + this.width/2 - 80, this.y - 20);
+                    Utils.drawPrompt(ctx, 'the casket goes in the hearse first', screenX + this.width / 2, this.y - 16);
                 } else if (!corpse.inCoffin) {
-                    ctx.fillText('Corpse missing from coffin!', screenX + this.width/2 - 80, this.y - 20);
+                    Utils.drawPrompt(ctx, 'the casket is empty', screenX + this.width / 2, this.y - 16);
                 }
-            } else if (!isHearseInDeliveryArea) {
-                ctx.fillStyle = '#ffaa00';
-                ctx.fillText('← PARK IN DELIVERY AREA', screenX - 180, this.y + this.height/2);
-            }
-
-            if (this.hasReceivedDelivery) {
-                ctx.fillStyle = '#888';
-                ctx.fillText('✓ Delivery Complete', screenX + this.width/2 - 60, this.y - 20);
+            } else if (!isHearseInDeliveryArea && !this.hasReceivedDelivery) {
+                Utils.drawPrompt(ctx, '← park in the delivery area', deliveryAreaScreenX + this.deliveryAreaWidth / 2, this.deliveryAreaY - 8);
             }
 
             ctx.restore();

@@ -306,17 +306,15 @@ class Bridge {
     }
 
     _drawPrompt(ctx, cameraX) {
-        ctx.fillStyle = 'rgba(255,255,110,0.85)';
-        ctx.font = '11px "Special Elite", monospace';
         if (!this.isDown) {
             // Step 1: coffin not on platform yet
             const sx  = this.platX - cameraX;
             const top = this.platY - this.platH;
-            ctx.fillText('← SET COFFIN HERE', sx + 4, top - 7);
+            Utils.drawPrompt(ctx, '← the casket goes here', sx + 40, top - 6);
         } else if (!this._hearseOnBridge) {
             // Step 2: bridge is down but hearse not on it yet
             const sx = this.leftEdgeX - cameraX + 10;
-            ctx.fillText('DRIVE ONTO BRIDGE →', sx, this.CLIFF_Y - 8);
+            Utils.drawPrompt(ctx, 'drive on →', sx + 60, this.CLIFF_Y - 6);
         }
         // Step 3: hearse on bridge — no prompt, player knows to retrieve coffin
     }

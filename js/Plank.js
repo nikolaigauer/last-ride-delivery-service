@@ -163,36 +163,25 @@ class PlankRavine {
         ctx.fillRect(screenLeft - 2, this.topY - 4, 4, 14);
         ctx.fillRect(screenRight - 2, this.topY - 4, 4, 14);
 
-        // Distance markers above (so player sees the gap from a distance)
-        const markerY = this.topY - 60;
-        ctx.strokeStyle = this.bridged ? 'rgba(0, 180, 60, 0.7)' : 'rgba(200, 40, 40, 0.85)';
-        ctx.lineWidth = 2;
-        ctx.setLineDash([6, 4]);
-        ctx.beginPath();
-        ctx.moveTo(screenLeft, markerY);
-        ctx.lineTo(screenRight, markerY);
-        ctx.stroke();
-        ctx.setLineDash([]);
+        // Distance marker above the gap — only while it's still a hazard.
+        // Once bridged, the plank itself is the signal; no label needed.
+        if (!this.bridged) {
+            const markerY = this.topY - 60;
+            ctx.strokeStyle = 'rgba(0, 0, 0, 0.55)';
+            ctx.lineWidth = 2;
+            ctx.setLineDash([6, 4]);
+            ctx.beginPath();
+            ctx.moveTo(screenLeft, markerY);
+            ctx.lineTo(screenRight, markerY);
+            ctx.stroke();
+            ctx.setLineDash([]);
+            Utils.drawPrompt(ctx, 'gap', (screenLeft + screenRight) / 2, markerY - 6);
+        }
 
-        // "GAP" / "BRIDGED" label centered above
-        ctx.font = 'bold 13px "Special Elite", monospace';
-        ctx.textAlign = 'center';
-        ctx.fillStyle = this.bridged ? '#0a8' : '#a22';
-        ctx.fillText(this.bridged ? '— BRIDGED —' : '— GAP —', (screenLeft + screenRight) / 2, markerY - 8);
-        ctx.textAlign = 'start';
-
-        // Yellow placement prompt above player when in range with a plank
+        // Placement prompt above player when in range with a plank
         if (player && hasHeldPlank && this.canPlacePlank(player, hasHeldPlank)) {
             const psx = (player.x + player.width / 2) - cameraX;
-            const psy = player.y - 50;
-            ctx.shadowColor = '#ffff00';
-            ctx.shadowBlur = 12;
-            ctx.fillStyle = '#ffff00';
-            ctx.font = 'bold 14px "Special Elite", monospace';
-            ctx.textAlign = 'center';
-            ctx.fillText('SPACE: PLACE PLANK', psx, psy);
-            ctx.textAlign = 'start';
-            ctx.shadowBlur = 0;
+            Utils.drawPrompt(ctx, 'space — lay the plank', psx, player.y - 44);
         }
 
         ctx.restore();

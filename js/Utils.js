@@ -37,4 +37,24 @@ class Utils {
     static randomInt(min, max) {
         return Math.floor(Math.random() * (max - min + 1)) + min;
     }
+
+    // Shared in-world interaction label: small black chip, white lettering.
+    // Every prompt in the game goes through this — one visual language.
+    // (centerX, bottomY) in screen coordinates; bottomY is the chip's bottom edge.
+    static drawPrompt(ctx, text, centerX, bottomY) {
+        ctx.save();
+        ctx.font = '10px Georgia, serif';
+        if ('letterSpacing' in ctx) ctx.letterSpacing = '2px';
+        const label = text.toUpperCase();
+        const textW = ctx.measureText(label).width;
+        const padX = 9, boxH = 20;
+        const boxW = textW + padX * 2;
+        ctx.fillStyle = '#000';
+        ctx.fillRect(centerX - boxW / 2, bottomY - boxH, boxW, boxH);
+        ctx.fillStyle = '#fff';
+        ctx.textAlign = 'center';
+        ctx.textBaseline = 'middle';
+        ctx.fillText(label, centerX, bottomY - boxH / 2 + 1);
+        ctx.restore();
+    }
 }

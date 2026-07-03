@@ -232,16 +232,17 @@ class Hospital {
             this.drawInkBuilding(ctx, screenX);
             ctx.shadowBlur = 0;
 
-            // Draw loading area with glow when hearse is positioned correctly
+            // Loading area marker — ink only: solid-dark dashes when the hearse
+            // is placed right, faint dashes while it isn't.
             ctx.shadowBlur = 0; // Reset shadow
             if (isHearseInLoadingArea) {
-                ctx.strokeStyle = '#00ff00';
-                ctx.lineWidth = 3;
-                ctx.setLineDash([10, 10]);
-            } else {
-                ctx.strokeStyle = '#ffaa00';
+                ctx.strokeStyle = '#000';
                 ctx.lineWidth = 2;
-                ctx.setLineDash([5, 5]);
+                ctx.setLineDash([12, 7]);
+            } else {
+                ctx.strokeStyle = 'rgba(0, 0, 0, 0.3)';
+                ctx.lineWidth = 2;
+                ctx.setLineDash([5, 7]);
             }
             
             ctx.strokeRect(loadingAreaScreenX, this.loadingAreaY, this.loadingAreaWidth, this.loadingAreaHeight);
@@ -250,24 +251,17 @@ class Hospital {
             // Show interaction prompts
             if (hearse && player) {
                 ctx.shadowBlur = 0;
-                ctx.font = 'bold 14px Arial';
 
                 // Hospital door interaction
                 if (canPlayerInteract && !this.playerHasInteracted) {
-                    ctx.fillStyle = '#00ff00';
-                    ctx.fillText('SPACEBAR: Collect Patient', screenX + this.width/2 - 80, this.y - 20);
+                    Utils.drawPrompt(ctx, 'space — collect the deceased', screenX + this.width / 2, this.y - 16);
                 } else if (this.playerHasInteracted && !this.hasSpawnedCargo) {
-                    ctx.fillStyle = '#ffaa00';
-                    ctx.fillText('Patient ready for transport...', screenX + this.width/2 - 80, this.y - 20);
+                    Utils.drawPrompt(ctx, "they're bringing him out", screenX + this.width / 2, this.y - 16);
                 }
 
-                // Loading area guidance
-                if (isHearseInLoadingArea && this.playerHasInteracted) {
-                    ctx.fillStyle = '#00ff00';
-                    ctx.fillText('✓ LOADING AREA', loadingAreaScreenX + 20, this.loadingAreaY - 10);
-                } else if (!isHearseInLoadingArea) {
-                    ctx.fillStyle = '#ffaa00';
-                    ctx.fillText('PARK IN LOADING AREA →', screenX + this.width + 10, this.y + this.height/2);
+                // Loading area guidance (the highlighted box says the rest)
+                if (!isHearseInLoadingArea && this.playerHasInteracted) {
+                    Utils.drawPrompt(ctx, 'park in the loading area →', loadingAreaScreenX + this.loadingAreaWidth / 2, this.loadingAreaY - 8);
                 }
             }
 

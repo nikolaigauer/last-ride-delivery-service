@@ -4,8 +4,8 @@ class PhoneBooth {
     constructor(x = 500, y = 300) {
         this.x = x;
         this.y = y;
-        this.width = 40;
-        this.height = 80;
+        this.width = 32;
+        this.height = 64;
         this.isRinging = true;
         this.isAnswered = false;
         this.active = true;
@@ -100,9 +100,7 @@ class PhoneBooth {
             // Show interaction prompt when player is near
             if (this.canInteract(player)) {
                 ctx.shadowBlur = 0;
-                ctx.fillStyle = '#ffff00';
-                ctx.font = 'bold 12px Arial';
-                ctx.fillText('SPACEBAR: Answer Phone', screenX - 20, this.y - 10);
+                Utils.drawPrompt(ctx, 'space — answer the phone', screenX + this.width / 2, this.y - 12);
             }
             
             ctx.restore();
