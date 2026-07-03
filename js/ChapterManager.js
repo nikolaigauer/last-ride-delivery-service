@@ -91,12 +91,12 @@ class ChapterManager {
                 game.checkpointX = 14500;
             },
             shouldAdvance: (game) => {
-                return game.currentEpisode === 2
-                    && game.coffin.isActive
-                    && game.coffin.inHearse
-                    && game.player.inVehicle
-                    && game.hearse.x > 23300
-                    && game.hearse.velocity > 0.4;
+                return game.currentEpisode === 2 &&
+                    game.coffin.isActive &&
+                    game.coffin.inHearse &&
+                    game.player.inVehicle &&
+                    game.hearse.x > 23300 &&
+                    game.hearse.velocity > 0.4;
             },
         };
     }
@@ -188,9 +188,9 @@ class ChapterManager {
 // edges. Visible gap is 160px wide; a 240px plank covers it with 40px overhang
 // on each side.
 const CHAPTER2_RAVINE_DEEP_X = 8000; // single deep terrain point
-const CHAPTER2_RAVINE_START  = 7920; // visible left cliff edge
-const CHAPTER2_RAVINE_END    = 8080; // visible right cliff edge
-const CHAPTER2_GROUND_TOP    = 393;  // Top surface where the hearse rolls (matches groundY at cliff edges with subtle undulation)
+const CHAPTER2_RAVINE_START = 7920; // visible left cliff edge
+const CHAPTER2_RAVINE_END = 8080; // visible right cliff edge
+const CHAPTER2_GROUND_TOP = 393; // Top surface where the hearse rolls (matches groundY at cliff edges with subtle undulation)
 
 function buildChapter2Terrain(worldWidth) {
     const points = [];
