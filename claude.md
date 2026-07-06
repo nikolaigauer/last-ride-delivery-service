@@ -120,6 +120,11 @@ hearse enter/exit. Proximity thresholds ~60px; hearse entry 80px.
 
 ## Known issues / open questions
 
+- **Frame-rate dependence:** the loop counts rAF frames with no fixed
+  timestep, so on a 120Hz display the entire game (physics, heat, timers,
+  scripted sequences) runs 2× speed. Needs a fixed-timestep accumulator in
+  `gameLoop()` eventually; all tuning was calibrated at 60fps.
+
 - Entity glow colors (green door glow, yellow phone ring, orange hood) are the
   last non-monochrome elements — open design question whether to keep color as
   a deliberate interaction language or find an ink-native affordance
