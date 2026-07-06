@@ -84,22 +84,28 @@ Plank ravine puzzle mid-route. Delivery at the real St. Margaret's.
 
 ---
 
-## Planned: The Dream Sequence (chapter 2, unimplemented)
+## The Dream Sequence — "the daymare" (chapter 2, IMPLEMENTED)
 
-Mid-way through the long flat stretch, at cruising speed, the daydream starts:
-the back door of the hearse opens by itself. The corpse climbs out. It crawls,
-slowly, over the roof of the moving hearse, toward the windshield — toward the
-driver. Hold it just past comfortable.
+Mid-way through the long flat stretch, at cruising speed (fires once,
+x 8700–11000, corpse aboard — see `js/DreamSequence.js`):
 
-Then a bump in the road. Hard cut. Everything is normal. The door is shut.
-The monologue says something small, like:
+The frame darkens. The back door swings open by itself. A figure climbs out
+and crawls, slowly, along the roof of the moving hearse toward the cab —
+pausing once to lift its head. Held just past comfortable. Then a hard cut
+to first-person: the road, the wheel, his hands — eyes appear in the
+rearview mirror — and the body slams upside-down onto the windshield,
+glass cracking, white flash—
+
+Sideview. The hood is up. Steam. The engine is dead. The hearse has
+overheated. That was all it ever was.
 
 > Need to sleep more.
 
-Design intent: a controlled surreal/horror note over the deadpan — keeps the long
-drive from being *only* monotonous, and plants the idea that the driver is coming
-apart a little. The bump that wakes him should be a real terrain bump, so the
-physics system itself ends the nightmare.
+Design intent: a controlled surreal/horror note over the deadpan — and the
+nightmare resolves into the game's most mundane mechanic (the overheat),
+which retroactively makes it both funnier and sadder. Also quietly teaches
+that chapter 2+ can no longer be predicted. Preview from console:
+`game.dreamSequence.start(true)`.
 
 ## Planned: Roadkill Substitution (future chapter)
 
