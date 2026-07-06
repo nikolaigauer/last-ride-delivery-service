@@ -16,6 +16,7 @@ class Hearse {
 
         // Door mechanics (unchanged)
         this.doorOpen = false;
+        this.visualDoorOpen = false; // sprite-only override (dream sequence) — never affects ejection logic
         this.doorOpenedByBump = false;
         this.bumpCounter = 0;
         this.bumpThreshold = 20;
@@ -447,7 +448,7 @@ class Hearse {
                 ctx.shadowOffsetY = 0;
             }
 
-            const sprite = this.doorOpen ? this.openSprite : this.closedSprite;
+            const sprite = (this.doorOpen || this.visualDoorOpen) ? this.openSprite : this.closedSprite;
             const centerX = screenX + this.width * 0.2;
             const centerY = this.y + this.height;
 

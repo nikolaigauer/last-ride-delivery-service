@@ -19,6 +19,11 @@ class MonologueSystem {
         this.active = null;
     }
 
+    // Play a one-off line immediately (scripted beats, e.g. waking from the dream)
+    playNow(text) {
+        this.active = { text, state: 'in', timer: 0 };
+    }
+
     update(playerX) {
         // Tick active snippet
         if (this.active) {

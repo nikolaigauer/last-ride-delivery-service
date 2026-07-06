@@ -173,6 +173,9 @@ class ChapterManager {
 
                 // 9. Chapter-aware respawn checkpoint (~1500px before the chasm)
                 game.checkpointX = 6300;
+
+                // 10. Arm the daymare (fires once, mid-flat-stretch after the ravine)
+                if (game.dreamSequence) game.dreamSequence.reset();
             },
             shouldAdvance: (game) => false, // last chapter for now
         };

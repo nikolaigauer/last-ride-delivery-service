@@ -308,7 +308,9 @@ class Church {
                 } else if (!corpse.inCoffin) {
                     Utils.drawPrompt(ctx, 'the casket is empty', screenX + this.width / 2, this.y - 16);
                 }
-            } else if (!isHearseInDeliveryArea && !this.hasReceivedDelivery) {
+            } else if (!isHearseInDeliveryArea && !this.hasReceivedDelivery &&
+                       Math.abs((hearse.x + hearse.width / 2) - (this.deliveryAreaX + this.deliveryAreaWidth / 2)) < 900) {
+                // Only signpost the parking zone on approach — not from across the map
                 Utils.drawPrompt(ctx, '← park in the delivery area', deliveryAreaScreenX + this.deliveryAreaWidth / 2, this.deliveryAreaY - 8);
             }
 

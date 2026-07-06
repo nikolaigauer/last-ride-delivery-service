@@ -35,6 +35,7 @@ class StickmanGame {
         this.openingPhone = null;
         this.closingPhone = null;
         this.monologue = null;
+        this.dreamSequence = new DreamSequence(); // ch.2 daymare (auto-triggers once)
         this.bridge = new Bridge(this.physics);  // Chapter 1: counterweight drawbridge
         this.plankRavine = null;                 // Chapter 2: plank-bridged chasm (lazy)
         this.planks = [];
@@ -225,10 +226,12 @@ class StickmanGame {
         if (this.plankRavine) {
             for (const plank of this.planks) plank.update(this.terrain);
         }
-        if (this.monologue) {
+        if (this.monologue && !this.dreamSequence.blocksMonologue()) {
             const trackX = this.player.inVehicle ? this.hearse.x : this.player.x;
             this.monologue.update(trackX);
         }
+
+        this.dreamSequence.update(this);
 
         // Carry held plank with the player
         if (this.heldPlank && this.heldPlank.isPickedUp) {
@@ -578,6 +581,7 @@ class StickmanGame {
         }
 
         this.hearse.draw(this.ctx, this.cameraX, this.player, this.coffin, this.corpse);
+        this.dreamSequence.drawWorld(this.ctx, this.cameraX, this.hearse); // roof crawler, over the hearse
         this.player.draw(this.ctx, this.cameraX);
         this.drawUI();
         this.drawDebug();
@@ -587,6 +591,9 @@ class StickmanGame {
 
         // Monologue floats above the player (camera-aware)
         if (this.monologue) this.monologue.draw(this.ctx, this.player, this.cameraX);
+
+        // Dream vignette + POV smash take the whole frame when active
+        this.dreamSequence.drawOverlay(this.ctx);
 
         // Fade overlay LAST — covers everything inside the canvas during chapter transitions
         if (this.chapterManager) this.chapterManager.drawFadeOverlay(this.ctx);
