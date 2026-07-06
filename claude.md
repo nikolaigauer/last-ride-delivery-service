@@ -8,6 +8,14 @@ the player sees exactly what's about to go wrong, and it does, with dignity.
 > artistic direction. **📖 Story:** `docs/story-and-dialogue.md` holds all
 > dialogue, verdict tiers, and planned scenes (dream sequence, roadkill swap).
 
+> **🛠 Skills (use them):** `.claude/skills/` defines the project's standing
+> expertise — `/dialogue` (voice rules for all player-facing text),
+> `/chapter-design` (comedy formula + chapter implementation pattern),
+> `/art-direction` (visual constitution + review checklist),
+> `/playtest` (browser harness, world geography, regression checklist).
+> Invoke the matching skill BEFORE writing dialogue, designing content,
+> changing visuals, or verifying gameplay.
+
 **Genre:** 2D physics dark comedy · **Engine:** Vanilla JS + Canvas + Matter.js
 **Art:** Black & white ink line art, procedural where possible
 **Presentation rule:** All dialogue/verdicts are silent-film intertitles —
