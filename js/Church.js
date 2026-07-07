@@ -54,9 +54,17 @@ class Church {
     }
     
     // The casket must contain SOMETHING. Nobody specified what.
+    // openCasket destinations are pickier: the man must be whole — or at
+    // least, something head-shaped must be in there with him.
     canCompleteDelivery(hearse, coffin, corpse, roadkill = null) {
         if (!this.active || this.hasReceivedDelivery) return false;
-        const cargoLoaded = corpse.inCoffin || (roadkill && roadkill.inCoffin);
+        let cargoLoaded;
+        if (this.openCasket) {
+            cargoLoaded = corpse.inCoffin &&
+                (!corpse.headDetached || (roadkill && roadkill.inCoffin));
+        } else {
+            cargoLoaded = corpse.inCoffin || (roadkill && roadkill.inCoffin);
+        }
         return this.checkHearseInDeliveryArea(hearse) &&
                coffin.inHearse &&
                cargoLoaded;
@@ -108,17 +116,25 @@ class Church {
         
         deliveryScore = Math.max(0, Math.round(deliveryScore)); // Round and don't go below 0
 
-        // The substitution: if the box holds the deer instead of the deceased,
-        // the verdict is its own thing. The family never opened the lid.
+        // The substitutions. Body double: the family never opened the lid.
+        // Head double: the family did. Verdicts differ accordingly.
         const substituted = roadkill && roadkill.inCoffin && !corpse.inCoffin;
+        const headSubstituted = this.openCasket && corpse.inCoffin &&
+            corpse.headDetached && roadkill && roadkill.inCoffin;
 
-        console.log(`🕊️ Delivery completed at church! Final score: ${deliveryScore}/100${substituted ? ' (SUBSTITUTED)' : ''}`);
+        console.log(`🕊️ Delivery completed at church! Final score: ${deliveryScore}/100${substituted || headSubstituted ? ' (SUBSTITUTED)' : ''}`);
+        let message;
+        if (substituted) {
+            message = "Closed casket. The family was moved. Nobody looked.";
+        } else if (headSubstituted) {
+            message = "Open casket. The widow said he finally looked at peace. Rounder than she remembered. At peace.";
+        } else {
+            message = this.getDeliveryMessage(deliveryScore);
+        }
         return {
             score: deliveryScore,
-            substituted,
-            message: substituted
-                ? "Closed casket. The family was moved. Nobody looked."
-                : this.getDeliveryMessage(deliveryScore),
+            substituted: substituted || headSubstituted,
+            message,
             hearseHealth: hearse.health || 0,
             coffinHealth: coffin.health || 0,
             corpseHealth: corpse.health || 0,
@@ -426,12 +442,16 @@ class Church {
             // Show interaction prompts
             ctx.shadowBlur = 0;
 
-            const casketFilled = corpse.inCoffin || (roadkill && roadkill.inCoffin);
+            const casketFilled = this.openCasket
+                ? (corpse.inCoffin && (!corpse.headDetached || (roadkill && roadkill.inCoffin)))
+                : (corpse.inCoffin || (roadkill && roadkill.inCoffin));
             if (canDeliver && !this.hasReceivedDelivery) {
                 Utils.drawPrompt(ctx, 'space — deliver', screenX + this.width / 2, this.y - 16);
             } else if (isHearseInDeliveryArea && !this.hasReceivedDelivery && (!coffin.inHearse || !casketFilled)) {
                 if (!coffin.inHearse) {
                     Utils.drawPrompt(ctx, 'the casket goes in the hearse first', screenX + this.width / 2, this.y - 16);
+                } else if (this.openCasket && corpse.inCoffin && corpse.headDetached) {
+                    Utils.drawPrompt(ctx, 'the man is not all there', screenX + this.width / 2, this.y - 16);
                 } else if (!casketFilled) {
                     Utils.drawPrompt(ctx, 'the casket is empty', screenX + this.width / 2, this.y - 16);
                 }

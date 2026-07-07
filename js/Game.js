@@ -31,7 +31,8 @@ class StickmanGame {
         this.church2 = new Church(24500, 280, "St. Margaret's"); // Real destination (episode 2)
         this.church2.active = false; // Chapter 2 will activate + reposition
         this.graveyard = null; // Chapter 3 destination (lazy)
-        this.roadkill = new Roadkill(-1000, 300); // Chapter 3 substitute (inactive until then)
+        this.church4 = null;   // Chapter 4 destination (lazy)
+        this.roadkill = new Roadkill(-1000, 300); // Substitute cargo: ch.3 deer, ch.4 melon (inactive until then)
 
         // Chapter-2 lazy slots (created on chapter swap)
         this.openingPhone = null;
@@ -137,25 +138,49 @@ class StickmanGame {
         console.log(`🕯️ Chapter 2 drop complete. Score: ${deliveryResult.score}/100`);
     }
 
-    // Closing call — the same booth serves both chapters; the words change.
+    // Closing call — the same booth serves every chapter; the words change.
     answerClosingPhone() {
-        const isChapter3 = this.chapterManager && this.chapterManager.currentIndex === 2;
-        const briefing = isChapter3 ? {
-            title: "Dispatch — End of the Line",
-            message: "Widow says he never looked better. The whole family was moved.\n\nI don't want to know. Whatever happened out there, I don't want to know.\n\nGo home. Wash the hearse. Burn the gloves.",
-            instruction: "End of the demo. There'll be another call."
-        } : {
-            title: "Dispatch — End of Shift",
-            message: "Yeah, that's the one. Good work.\n\nGo home. Wash the hearse. There'll be another call.\n\nThere's always another call.",
-            instruction: "Drive east when you're ready."
-        };
+        const idx = this.chapterManager ? this.chapterManager.currentIndex : 1;
+        let briefing, nextEpisode;
+        if (idx === 3) {
+            briefing = {
+                title: "Dispatch — Last Call",
+                message: "Family's very happy. Said the service changed the way they see him.\n\nStop telling me how you do this. I mean it.\n\nGo home. That's the last one. For today.",
+                instruction: "THE END — thank you for playing."
+            };
+            nextEpisode = 'the_end';
+        } else if (idx === 2) {
+            briefing = {
+                title: "Dispatch — End of the Line",
+                message: "Widow says he never looked better. The whole family was moved.\n\nI don't want to know. Whatever happened out there, I don't want to know.\n\nGo home. Wash the hearse. Burn the gloves.",
+                instruction: "Drive east when you're ready."
+            };
+            nextEpisode = 'series_end';
+        } else {
+            briefing = {
+                title: "Dispatch — End of Shift",
+                message: "Yeah, that's the one. Good work.\n\nGo home. Wash the hearse. There'll be another call.\n\nThere's always another call.",
+                instruction: "Drive east when you're ready."
+            };
+            nextEpisode = 'complete';
+        }
         this.showMissionBriefing(briefing);
         if (this.closingPhone) {
             this.closingPhone.isRinging = false;
             this.closingPhone.isAnswered = true;
         }
-        this.currentEpisode = isChapter3 ? 'series_end' : 'complete';
-        console.log(`☎️ Closing call answered (${isChapter3 ? 'chapter 3' : 'chapter 2'}).`);
+        this.currentEpisode = nextEpisode;
+        console.log(`☎️ Closing call answered (chapter ${idx + 1}).`);
+    }
+
+    showChurch4Completion(deliveryResult) {
+        const completion = {
+            title: "Delivered — St. Anthony's",
+            message: `${deliveryResult.message}\n\nNobody said a word about the melon on the lawn.`,
+            instruction: "The phone. One more time."
+        };
+        this.showMissionBriefing(completion, 1200, 110);
+        console.log(`⛪ Chapter 4 delivery complete. Substituted: ${deliveryResult.substituted}`);
     }
 
     // Chapter-3 grave-side drop: the coffin slides out and the lid STAYS SHUT.
@@ -244,6 +269,7 @@ class StickmanGame {
         this.church.update(this.terrain);
         this.church2.update(this.terrain);
         if (this.graveyard) this.graveyard.update(this.terrain);
+        if (this.church4) this.church4.update(this.terrain);
         this.roadkill.update(this.terrain);
 
         // Carry the deer with the player
@@ -426,6 +452,22 @@ class StickmanGame {
             return;
         }
 
+        // Episode 4: the open casket at St. Anthony's. The lid comes up in
+        // public — the body spills, and so does whatever rode along with it.
+        if (this.currentEpisode === 4 && this.church4 &&
+            this.church4.canCompleteDelivery(this.hearse, this.coffin, this.corpse, this.roadkill)) {
+            const deliveryResult = this.church4.completeDelivery(this.hearse, this.coffin, this.corpse, this.roadkill);
+            this.dropCargoOnChurchGrounds();
+            if (this.roadkill.inCoffin) {
+                this.roadkill.inCoffin = false;
+                this.roadkill.x = this.coffin.x + this.coffin.width + 6;
+            }
+            this.showChurch4Completion(deliveryResult);
+            this.currentEpisode = 'awaiting_end_call';
+            if (this.closingPhone) this.closingPhone.isRinging = true;
+            return;
+        }
+
         // Episode 1: drop at St. Mary's (the wrong church)
         if (this.currentEpisode === 1 && this.church.canCompleteDelivery(this.hearse, this.coffin, this.corpse)) {
             const deliveryResult = this.church.completeDelivery(this.hearse, this.coffin, this.corpse);
@@ -500,8 +542,8 @@ class StickmanGame {
                 this.coffin.lidOpenedByBump = false;
                 this.coffin.lidTimer = 30;
                 if (!this.monologue) this.monologue = new MonologueSystem();
-                this.monologue.playNow('God forgive me.');
-                console.log('🦌 Deer loaded into coffin. Nobody saw.');
+                this.monologue.playNow(this.roadkill.kind === 'melon' ? 'Close enough.' : 'God forgive me.');
+                console.log(`📦 ${this.roadkill.kind} loaded into coffin. Nobody saw.`);
             } else {
                 this.roadkill.drop(this.player, this.terrain);
                 console.log('🦌 Put the deer down');
@@ -641,6 +683,8 @@ class StickmanGame {
         this.church.draw(this.ctx, this.cameraX, this.hearse, this.coffin, this.corpse);
         this.church2.draw(this.ctx, this.cameraX, this.hearse, this.coffin, this.corpse);
         if (this.graveyard) this.graveyard.draw(this.ctx, this.cameraX, this.hearse, this.coffin, this.corpse, this.roadkill);
+        if (this.church4) this.church4.draw(this.ctx, this.cameraX, this.hearse, this.coffin, this.corpse, this.roadkill);
+        this.chapterManager.drawProps(this.ctx, this.cameraX);
         this.roadkill.draw(this.ctx, this.cameraX, this.player);
 
         // Chapter 1: drawbridge (no-op when inactive)

@@ -1,16 +1,26 @@
-// Roadkill — a dead deer by the roadside (chapter 3). Carryable like the
-// corpse, loadable into the coffin as a... substitute. Not a ragdoll: it is
-// long past ragdolling. Drawn procedurally: on its back, legs stiff in the air.
+// Roadkill — the substitute-cargo entity. Chapter 3: a dead deer (body double).
+// Chapter 4: a melon (head double). Carryable, loadable into the coffin.
+// Not a ragdoll: whatever it was, it is long past ragdolling.
 
 class Roadkill {
-    constructor(x = -1000, y = 300) {
+    constructor(x = -1000, y = 300, kind = 'deer') {
         this.x = x;
         this.y = y;
-        this.width = 78;
-        this.height = 34;
+        this.setKind(kind);
         this.isActive = false;
         this.isPickedUp = false;
         this.inCoffin = false;
+    }
+
+    setKind(kind) {
+        this.kind = kind;
+        if (kind === 'melon') {
+            this.width = 34;
+            this.height = 28;
+        } else {
+            this.width = 78;
+            this.height = 34;
+        }
     }
 
     update(terrain) {
@@ -46,6 +56,12 @@ class Roadkill {
             ctx.shadowBlur = 15;
         }
         if (this.isPickedUp) ctx.globalAlpha = 0.85;
+
+        if (this.kind === 'melon') {
+            this._drawMelon(ctx, screenX, player);
+            ctx.restore();
+            return;
+        }
 
         const x = screenX, y = this.y, w = this.width, h = this.height;
         const beltY = y + h - 12; // body centerline (it lies on its back)
@@ -109,5 +125,39 @@ class Roadkill {
         }
 
         ctx.restore();
+    }
+
+    // A melon of dignified proportions. Roughly cranial.
+    _drawMelon(ctx, screenX, player) {
+        const cx = screenX + this.width / 2;
+        const cy = this.y + this.height / 2 + 2;
+        const r = 13;
+
+        ctx.fillStyle = '#000';
+        ctx.strokeStyle = '#000';
+        ctx.beginPath();
+        ctx.arc(cx, cy, r, 0, Math.PI * 2);
+        ctx.fill();
+
+        // Ridge lines — white on the silhouette
+        ctx.strokeStyle = 'rgba(255,255,255,0.85)';
+        ctx.lineWidth = 1.4;
+        for (const off of [-6, 0, 6]) {
+            ctx.beginPath();
+            ctx.ellipse(cx + off * 0.5, cy, Math.abs(r * (1 - Math.abs(off) / 14)), r, 0, -Math.PI / 2, Math.PI / 2);
+            ctx.stroke();
+        }
+        // Stem
+        ctx.strokeStyle = '#000';
+        ctx.lineWidth = 3;
+        ctx.beginPath();
+        ctx.moveTo(cx, cy - r);
+        ctx.lineTo(cx + 4, cy - r - 6);
+        ctx.stroke();
+
+        ctx.shadowBlur = 0;
+        if (this.canPickup(player)) {
+            Utils.drawPrompt(ctx, 'space — take the melon', cx, this.y - 12);
+        }
     }
 }
