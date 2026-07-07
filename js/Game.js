@@ -490,9 +490,13 @@ class StickmanGame {
         // (Deliveries are no longer spacebar events — the casket is set on the
         // destination bier by hand; see _checkBierDeliveries.)
 
-        // Loose/grabbed bier: catch it, or let it go
+        // Loose/grabbed bier: catch it, or let it go. The grab handle is at
+        // the ENDS of the cart — standing over the middle means you're
+        // reaching for what's ON it, not for the cart.
         for (const b of this.biers) {
-            if (b.canInteract(this.player) && (b.loose || b.grabbed)) {
+            const gripOff = Math.abs((this.player.x + this.player.width / 2) - (b.x + b.width / 2));
+            if (b.canInteract(this.player) && (b.loose || b.grabbed) &&
+                (b.grabbed || !b.hasCorpse || gripOff > 34)) {
                 b.grabbed = !b.grabbed;
                 if (b.grabbed) {
                     b.rolling = false;
@@ -559,6 +563,7 @@ class StickmanGame {
             this.corpse.inCoffin = false;
             this.corpse.isPickedUp = false;
             this.corpse.moveToPosition(this.hospitalBier.x + 8, this.hospitalBier.y - 42);
+            this.corpse.layDown(); // clients ride lying down. house rules.
             console.log('🏥 Front desk done — corpse on the cart at the side door');
             return;
         }

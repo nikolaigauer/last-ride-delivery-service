@@ -118,13 +118,17 @@ class Bier {
             ctx.fill();
         }
 
-        // Prompts
+        // Prompts (grab handle lives at the cart's ends; the middle belongs
+        // to whatever is lying on it)
         if (player && this.canInteract(player)) {
             const cx = sx + this.width / 2;
+            const gripOff = Math.abs((player.x + player.width / 2) - (this.x + this.width / 2));
             if (this.grabbed) {
                 Utils.drawPrompt(ctx, 'space — let go', cx, top - 40);
-            } else if (this.loose) {
+            } else if (this.loose && (!this.hasCorpse || gripOff > 34)) {
                 Utils.drawPrompt(ctx, 'space — grab the cart', cx, top - 40);
+            } else if (this.loose && this.hasCorpse) {
+                Utils.drawPrompt(ctx, 'space — take him', cx, top - 40);
             } else if (coffinCarried && !this.hasCoffin) {
                 Utils.drawPrompt(ctx, 'space — set the casket down', cx, top - 40);
             }

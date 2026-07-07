@@ -287,6 +287,23 @@ class Corpse {
         });
     }
 
+    // Rotate the whole ragdoll 90° around the hip into a lying pose (head to
+    // the left), then zero velocities. moveToPosition translates rigidly, so
+    // the pose survives transport — for riding carts the way clients should.
+    layDown() {
+        const hip = this.points.hip;
+        Object.values(this.points).forEach(p => {
+            const dx = p.x - hip.x;
+            const dy = p.y - hip.y;
+            p.x = hip.x + dy;
+            p.y = hip.y - dx * 0.9;
+            p.oldX = p.x;
+            p.oldY = p.y;
+        });
+        this.x = hip.x - 20;
+        this.y = hip.y - 15;
+    }
+
     moveToPosition(x, y) {
         // When being carried, only move the grab point - let limbs dangle!
         if (this.isPickedUp) {

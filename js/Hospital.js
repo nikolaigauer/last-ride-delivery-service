@@ -217,8 +217,9 @@ class Hospital {
         const screenX = this.x - cameraX;
         const loadingAreaScreenX = this.loadingAreaX - cameraX;
 
-        // Only draw if visible on screen
-        if (screenX > -this.width && screenX < ctx.canvas.width + this.width) {
+        // Only draw if visible on screen — the campus (signs, bushes, lot)
+        // extends ~800px past the building, so cull generously eastward
+        if (screenX > -(this.width + 900) && screenX < ctx.canvas.width + this.width) {
             const isHearseInLoadingArea = this.checkHearseInLoadingArea(hearse);
             const canPlayerInteract = this.canPlayerInteractWithDoor(player);
 
