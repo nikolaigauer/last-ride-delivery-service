@@ -10,6 +10,7 @@ class Coffin {
         this.isOpen = false;
         this.isPickedUp = false;
         this.inHearse = false;
+        this.onBier = false;   // resting on a cart — position managed by the Bier
         this.isActive = false;
         this.velocityY = 0;   // kept for external reads (ejectFromCoffin impulse)
         this.velocityX = 0;
@@ -118,7 +119,7 @@ class Coffin {
 
         if (!this.isActive) return;
 
-        if (!this.inHearse && !this.isPickedUp) {
+        if (!this.inHearse && !this.isPickedUp && !this.onBier) {
             // Free on ground — let Matter handle physics
             this._addToWorld();
             this.x = this.body.position.x - this.width / 2;

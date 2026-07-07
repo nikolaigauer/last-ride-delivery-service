@@ -43,6 +43,12 @@ class StickmanGame {
         this.plankRavine = null;                 // Chapter 2: plank-bridged chasm (lazy)
         this.planks = [];
         this.heldPlank = null;
+
+        // Biers — coffins are collected from and delivered onto wheeled carts.
+        // Chapter applies rebuild this array; chapter 1's are set up here.
+        this.hospitalBier = new Bier(3140);
+        this.church.bier = new Bier(21980);
+        this.biers = [this.hospitalBier, this.church.bier];
         // this.potholeManager = new PotholeManager(); // Terrain hazards - REMOVED
 
         // Start player in hearse for streamlined beginning
@@ -89,15 +95,6 @@ class StickmanGame {
         setTimeout(() => {
             this.audio.startBackgroundMusic();
         }, 2000);
-    }
-
-    // Eject the coffin out of the hearse onto the church grounds, lid pops, corpse spills.
-    // Used at both St. Mary's (episode 1) and St. Margaret's (episode 2).
-    dropCargoOnChurchGrounds() {
-        if (!this.coffin.isActive || !this.coffin.inHearse) return;
-        this.coffin.ejectFromHearse(this.hearse.x, this.hearse.y, this.hearse.velocity, this.hearse.tiltAngle);
-        this.coffin.lidOpen = true;
-        this.coffin.lidOpenedByBump = true; // Update loop will auto-eject the corpse next frame
     }
 
     // Episode 1 result — coffin's at the wrong church, deliveryBooth starts ringing.
@@ -176,21 +173,72 @@ class StickmanGame {
     showChurch4Completion(deliveryResult) {
         const completion = {
             title: "Delivered — St. Anthony's",
-            message: `${deliveryResult.message}\n\nNobody said a word about the melon on the lawn.`,
+            message: `${deliveryResult.message}\n\nNobody asked why the casket smelled faintly of fruit.`,
             instruction: "The phone. One more time."
         };
         this.showMissionBriefing(completion, 1200, 110);
         console.log(`⛪ Chapter 4 delivery complete. Substituted: ${deliveryResult.substituted}`);
     }
 
-    // Chapter-3 grave-side drop: the coffin slides out and the lid STAYS SHUT.
-    // Closed casket. Whatever ejection did to the lid, undo it. Nobody looks.
-    dropCargoAtGraveClosed() {
-        if (!this.coffin.isActive || !this.coffin.inHearse) return;
-        this.coffin.ejectFromHearse(this.hearse.x, this.hearse.y, this.hearse.velocity, this.hearse.tiltAngle);
-        this.coffin.lidOpen = false;
-        this.coffin.lidOpenedByBump = false;
-        this.coffin.bumpCounter = 0;
+    // Deliveries complete when the casket is set on the destination bier —
+    // by hand, with dignity. No ejections, no swinging corpses at the gate.
+    // (The Hillcrest bier has its own ideas about being loaded.)
+    _checkBierDeliveries() {
+        const destinations = [
+            { church: this.church, ep: 1 },
+            { church: this.church2, ep: 2 },
+            { church: this.graveyard, ep: 3 },
+            { church: this.church4, ep: 4 },
+        ];
+        for (const { church, ep } of destinations) {
+            if (!church || !church.active || church.hasReceivedDelivery) continue;
+            if (this.currentEpisode !== ep) continue;
+            const b = church.bier;
+            if (!b || !b.hasCoffin || b.grabbed || b.rolling) continue;
+
+            // The cargo must be... adequate
+            const cargoOk = church.openCasket
+                ? (this.corpse.inCoffin && (!this.corpse.headDetached || this.roadkill.inCoffin))
+                : (this.corpse.inCoffin || this.roadkill.inCoffin);
+            if (!cargoOk) continue;
+
+            // Runaway bier: the first loading is not a delivery, it's a departure
+            if (b.runaway && !b.chocked) {
+                b.runaway = false;
+                b.rolling = true;
+                b.loose = true;
+                b.vx = -1.6; // it leaves with conviction
+                if (!this.monologue) this.monologue = new MonologueSystem();
+                this.monologue.playNow('No. No no no.');
+                continue;
+            }
+            // The bier (and its cargo) must actually be AT the destination
+            const bierCX = b.x + b.width / 2;
+            const zoneCX = church.deliveryAreaX + church.deliveryAreaWidth / 2;
+            if (Math.abs(bierCX - zoneCX) > 260) continue;
+
+            const result = church.completeDelivery(this.hearse, this.coffin, this.corpse, this.roadkill);
+            b.chocked = true; // this time, the wheel gets a chock
+            b.loose = false;
+            b.rolling = false;
+            b.vx = 0;
+            if (ep === 1) {
+                this.showDeliveryResult(result);
+            } else if (ep === 2) {
+                this.showFinalCompletion(result);
+                this.currentEpisode = 'awaiting_closing_call';
+                if (this.closingPhone) this.closingPhone.isRinging = true;
+            } else if (ep === 3) {
+                this.showGraveCompletion(result);
+                this.currentEpisode = 'awaiting_final_call';
+                if (this.closingPhone) this.closingPhone.isRinging = true;
+            } else if (ep === 4) {
+                this.showChurch4Completion(result);
+                this.currentEpisode = 'awaiting_end_call';
+                if (this.closingPhone) this.closingPhone.isRinging = true;
+            }
+            return;
+        }
     }
 
     showGraveCompletion(deliveryResult) {
@@ -271,6 +319,8 @@ class StickmanGame {
         if (this.graveyard) this.graveyard.update(this.terrain);
         if (this.church4) this.church4.update(this.terrain);
         this.roadkill.update(this.terrain);
+        for (const b of this.biers) b.update(this.terrain, this);
+        this._checkBierDeliveries();
 
         // Carry the deer with the player
         if (this.roadkill.isActive && this.roadkill.isPickedUp) {
@@ -370,12 +420,16 @@ class StickmanGame {
         if (this.hospital.playerHasInteracted && !this.hospital.hasSpawnedCargo) {
             if (this.hospital.checkHearseInLoadingArea(this.hearse)) {
                 console.log('🚗 Hearse in loading area - spawning cargo!');
-                this.hospital.spawnCargo(this.coffin, this.corpse, this.hearse);
+                if (this.hospital.spawnCargo(this.coffin, this.corpse, this.hearse) && this.hospitalBier) {
+                    // They wheel him out on the bier, as is proper
+                    this.coffin.onBier = true;
+                    this.hospitalBier.hasCoffin = true;
+                }
             }
         }
 
         // Coffin rescue — if it sinks below terrain, surface it
-        if (this.coffin.isActive && !this.coffin.inHearse && !this.coffin.isPickedUp && this.coffin.body) {
+        if (this.coffin.isActive && !this.coffin.inHearse && !this.coffin.isPickedUp && !this.coffin.onBier && this.coffin.body) {
             const maxGroundY = this.terrain.getGroundYAt(this.coffin.x + this.coffin.width / 2) + 30;
             if (this.coffin.y > maxGroundY) {
                 Matter.Body.setPosition(this.coffin.body, {
@@ -441,49 +495,23 @@ class StickmanGame {
             return;
         }
 
-        // Episode 3: deliver at the family plot (corpse or... whatever's in the box)
-        if (this.currentEpisode === 3 && this.graveyard &&
-            this.graveyard.canCompleteDelivery(this.hearse, this.coffin, this.corpse, this.roadkill)) {
-            const deliveryResult = this.graveyard.completeDelivery(this.hearse, this.coffin, this.corpse, this.roadkill);
-            this.dropCargoAtGraveClosed();
-            this.showGraveCompletion(deliveryResult);
-            this.currentEpisode = 'awaiting_final_call';
-            if (this.closingPhone) this.closingPhone.isRinging = true;
-            return;
-        }
+        // (Deliveries are no longer spacebar events — the casket is set on the
+        // destination bier by hand; see _checkBierDeliveries.)
 
-        // Episode 4: the open casket at St. Anthony's. The lid comes up in
-        // public — the body spills, and so does whatever rode along with it.
-        if (this.currentEpisode === 4 && this.church4 &&
-            this.church4.canCompleteDelivery(this.hearse, this.coffin, this.corpse, this.roadkill)) {
-            const deliveryResult = this.church4.completeDelivery(this.hearse, this.coffin, this.corpse, this.roadkill);
-            this.dropCargoOnChurchGrounds();
-            if (this.roadkill.inCoffin) {
-                this.roadkill.inCoffin = false;
-                this.roadkill.x = this.coffin.x + this.coffin.width + 6;
+        // Loose/grabbed bier: catch it, or let it go
+        for (const b of this.biers) {
+            if (b.canInteract(this.player) && (b.loose || b.grabbed)) {
+                b.grabbed = !b.grabbed;
+                if (b.grabbed) {
+                    b.rolling = false;
+                    b.vx = 0;
+                    console.log('🛒 Caught the cart');
+                } else {
+                    b.rolling = true; // let go on a slope and it remembers
+                    console.log('🛒 Let the cart go');
+                }
+                return;
             }
-            this.showChurch4Completion(deliveryResult);
-            this.currentEpisode = 'awaiting_end_call';
-            if (this.closingPhone) this.closingPhone.isRinging = true;
-            return;
-        }
-
-        // Episode 1: drop at St. Mary's (the wrong church)
-        if (this.currentEpisode === 1 && this.church.canCompleteDelivery(this.hearse, this.coffin, this.corpse)) {
-            const deliveryResult = this.church.completeDelivery(this.hearse, this.coffin, this.corpse);
-            this.dropCargoOnChurchGrounds();
-            this.showDeliveryResult(deliveryResult);
-            return;
-        }
-
-        // Episode 2: drop at St. Margaret's (the real one)
-        if (this.currentEpisode === 2 && this.church2.canCompleteDelivery(this.hearse, this.coffin, this.corpse)) {
-            const deliveryResult = this.church2.completeDelivery(this.hearse, this.coffin, this.corpse);
-            this.dropCargoOnChurchGrounds();
-            this.showFinalCompletion(deliveryResult);
-            this.currentEpisode = 'awaiting_closing_call';
-            if (this.closingPhone) this.closingPhone.isRinging = true;
-            return;
         }
 
         // Wrong-church callback phone after episode-1 drop
@@ -570,6 +598,10 @@ class StickmanGame {
             !(this.corpse.detachedHead && this.corpse.detachedHead.isPickedUp)) {
             // Pick up coffin (and maintain any corpse inside)
             this.coffin.isPickedUp = true;
+            if (this.coffin.onBier) {
+                this.coffin.onBier = false;
+                for (const b of this.biers) b.hasCoffin = false;
+            }
 
             // If corpse is in coffin, move it with the coffin
             if (this.corpse.inCoffin) {
@@ -579,9 +611,15 @@ class StickmanGame {
             }
 
         } else if (!this.player.inVehicle && this.coffin.isActive && this.coffin.isPickedUp) {
-            // Carrying coffin - can load into hearse or drop
+            // Carrying coffin — load into hearse, set on a bier, or drop
+            const nearBier = this.biers.find(b => b.canInteract(this.player) && !b.hasCoffin && !b.isMoving());
             if (this.player.canLoadCoffin(this.hearse)) {
                 this.hearse.loadCoffin(this.coffin);
+            } else if (nearBier) {
+                this.coffin.isPickedUp = false;
+                this.coffin.onBier = true;
+                nearBier.hasCoffin = true;
+                console.log('⚰️ Casket set on the bier');
             } else {
                 // Drop coffin on ground
                 this.coffin.isPickedUp = false;
@@ -685,6 +723,7 @@ class StickmanGame {
         if (this.graveyard) this.graveyard.draw(this.ctx, this.cameraX, this.hearse, this.coffin, this.corpse, this.roadkill);
         if (this.church4) this.church4.draw(this.ctx, this.cameraX, this.hearse, this.coffin, this.corpse, this.roadkill);
         this.chapterManager.drawProps(this.ctx, this.cameraX);
+        for (const b of this.biers) b.draw(this.ctx, this.cameraX, this.player, this.coffin.isPickedUp);
         this.roadkill.draw(this.ctx, this.cameraX, this.player);
 
         // Chapter 1: drawbridge (no-op when inactive)

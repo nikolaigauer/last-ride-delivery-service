@@ -520,6 +520,7 @@ class ChapterManager {
                 if (game.openingPhone) game.openingPhone.active = false;
                 if (game.closingPhone) game.closingPhone.active = false;
                 if (game.plankRavine) game.plankRavine.active = false;
+                game.biers = [game.hospitalBier, game.church.bier];
                 game.checkpointX = 14500;
             },
             shouldAdvance: (game) => {
@@ -551,6 +552,11 @@ class ChapterManager {
                 game.church2.active = true;
                 game.church2.x = 15500;
                 game.church2.hasReceivedDelivery = false;
+                if (!game.church2.bier) game.church2.bier = new Bier(15450);
+                game.church2.bier.x = 15450;
+                game.church2.bier.hasCoffin = false;
+                game.church2.bier.chocked = false;
+                game.biers = [game.church2.bier];
 
                 // Opening phone (silent — visual continuity beat)
                 if (!game.openingPhone) {
@@ -648,6 +654,16 @@ class ChapterManager {
                 game.graveyard.active = true;
                 game.graveyard.x = 13500;
                 game.graveyard.hasReceivedDelivery = false;
+                // The Hillcrest bier. It has wheels, and Hillcrest has a hill.
+                if (!game.graveyard.bier) game.graveyard.bier = new Bier(13380, true);
+                const gBier = game.graveyard.bier;
+                gBier.x = 13380; // near the gate — and near the lip of the hill
+                gBier.hasCoffin = false;
+                gBier.runaway = true;
+                gBier.rolling = false;
+                gBier.grabbed = false;
+                gBier.chocked = false;
+                gBier.vx = 0;
 
                 // 5. Phones (reused from chapter 2)
                 if (!game.openingPhone) game.openingPhone = new PhoneBooth(700, 300);
@@ -666,25 +682,22 @@ class ChapterManager {
                 game.closingPhone.isRinging = false;
                 game.closingPhone.isAnswered = false;
 
-                // 6. The casket, boxed and waiting out front — same fellow inside
-                const coffinX = 1650;
+                // 6. The casket, boxed and waiting on a bier out front
+                if (!this._ch3PickupBier) this._ch3PickupBier = new Bier(1620);
+                this._ch3PickupBier.x = 1620;
+                this._ch3PickupBier.hasCoffin = true;
+                this._ch3PickupBier.chocked = true;
+                game.biers = [this._ch3PickupBier, gBier];
                 game.coffin.isActive = true;
                 game.coffin.inHearse = false;
                 game.coffin.isPickedUp = false;
+                game.coffin.onBier = true;
                 game.coffin.lidOpen = false;
                 game.coffin.lidOpenedByBump = false;
-                game.coffin.x = coffinX;
-                game.coffin.y = 395 - game.coffin.height;
+                game.coffin.x = 1630;
+                game.coffin.y = 395 - 34 - game.coffin.height;
                 game.coffin.velocityX = 0;
                 game.coffin.velocityY = 0;
-                if (game.coffin.body) {
-                    Matter.Body.setPosition(game.coffin.body, {
-                        x: game.coffin.x + game.coffin.width / 2,
-                        y: game.coffin.y + game.coffin.height / 2,
-                    });
-                    Matter.Body.setVelocity(game.coffin.body, { x: 0, y: 0 });
-                    Matter.Body.setAngle(game.coffin.body, 0);
-                }
                 game.corpse.isActive = true;
                 game.corpse.inCoffin = true;
                 game.corpse.isPickedUp = false;
@@ -771,6 +784,15 @@ class ChapterManager {
                 game.church4.x = 13000;
                 game.church4.hasReceivedDelivery = false;
                 game.church4.openCasket = true;
+                if (!game.church4.bier) game.church4.bier = new Bier(12950);
+                game.church4.bier.x = 12950;
+                game.church4.bier.hasCoffin = false;
+                game.church4.bier.chocked = false;
+                if (!this._ch4PickupBier) this._ch4PickupBier = new Bier(1470);
+                this._ch4PickupBier.x = 1470;
+                this._ch4PickupBier.hasCoffin = true;
+                this._ch4PickupBier.chocked = true;
+                game.biers = [this._ch4PickupBier, game.church4.bier];
 
                 // 4. Phones
                 if (!game.openingPhone) game.openingPhone = new PhoneBooth(700, 300);
@@ -789,25 +811,18 @@ class ChapterManager {
                 game.closingPhone.isRinging = false;
                 game.closingPhone.isAnswered = false;
 
-                // 5. The professor, boxed and waiting by the road
+                // 5. The professor, boxed and waiting on his bier
                 game.coffin.isActive = true;
                 game.coffin.inHearse = false;
                 game.coffin.isPickedUp = false;
+                game.coffin.onBier = true;
                 game.coffin.lidOpen = false;
                 game.coffin.lidOpenedByBump = false;
                 game.coffin.bumpCounter = 0;
-                game.coffin.x = 1500;
-                game.coffin.y = 395 - game.coffin.height;
+                game.coffin.x = 1480;
+                game.coffin.y = 395 - 34 - game.coffin.height;
                 game.coffin.velocityX = 0;
                 game.coffin.velocityY = 0;
-                if (game.coffin.body) {
-                    Matter.Body.setPosition(game.coffin.body, {
-                        x: game.coffin.x + game.coffin.width / 2,
-                        y: game.coffin.y + game.coffin.height / 2,
-                    });
-                    Matter.Body.setVelocity(game.coffin.body, { x: 0, y: 0 });
-                    Matter.Body.setAngle(game.coffin.body, 0);
-                }
                 // A new client: whole, for now
                 game.corpse.isActive = true;
                 game.corpse.inCoffin = true;
@@ -929,10 +944,15 @@ function buildChapter3Terrain(worldWidth) {
             variation = 0;
         }
 
-        // Flatten under St. Margaret's, the graveyard, and both phones
+        // Flatten under St. Margaret's and the phones
         if (Math.abs(x - 1300) < 450) variation = 0;
-        if (Math.abs(x - 13700) < 500) variation = 0;
         if (Math.abs(x - 700) < 100 || Math.abs(x - 15200) < 100) variation = 0;
+
+        // Hillcrest earns its name: a long climb up to the plot, flat at the
+        // crest, back down the far side. A cart with wheels will notice.
+        if (x > 12300 && x < 13300) variation = -((x - 12300) / 1000) * 90;
+        else if (x >= 13300 && x < 14300) variation = -90;
+        else if (x >= 14300 && x < 15000) variation = -90 + ((x - 14300) / 700) * 90;
 
         points.push({
             x,

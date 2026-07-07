@@ -442,23 +442,17 @@ class Church {
             // Show interaction prompts
             ctx.shadowBlur = 0;
 
+            // Delivery = the casket set on this church's bier, by hand. The
+            // only church-level prompts are complaints about the contents.
             const casketFilled = this.openCasket
                 ? (corpse.inCoffin && (!corpse.headDetached || (roadkill && roadkill.inCoffin)))
                 : (corpse.inCoffin || (roadkill && roadkill.inCoffin));
-            if (canDeliver && !this.hasReceivedDelivery) {
-                Utils.drawPrompt(ctx, 'space — deliver', screenX + this.width / 2, this.y - 16);
-            } else if (isHearseInDeliveryArea && !this.hasReceivedDelivery && (!coffin.inHearse || !casketFilled)) {
-                if (!coffin.inHearse) {
-                    Utils.drawPrompt(ctx, 'the casket goes in the hearse first', screenX + this.width / 2, this.y - 16);
-                } else if (this.openCasket && corpse.inCoffin && corpse.headDetached) {
+            if (!this.hasReceivedDelivery && this.bier && this.bier.hasCoffin && !casketFilled) {
+                if (this.openCasket && corpse.inCoffin && corpse.headDetached) {
                     Utils.drawPrompt(ctx, 'the man is not all there', screenX + this.width / 2, this.y - 16);
-                } else if (!casketFilled) {
+                } else {
                     Utils.drawPrompt(ctx, 'the casket is empty', screenX + this.width / 2, this.y - 16);
                 }
-            } else if (!isHearseInDeliveryArea && !this.hasReceivedDelivery &&
-                       Math.abs((hearse.x + hearse.width / 2) - (this.deliveryAreaX + this.deliveryAreaWidth / 2)) < 900) {
-                // Only signpost the parking zone on approach — not from across the map
-                Utils.drawPrompt(ctx, '← park in the delivery area', deliveryAreaScreenX + this.deliveryAreaWidth / 2, this.deliveryAreaY - 8);
             }
 
             ctx.restore();
