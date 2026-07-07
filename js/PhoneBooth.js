@@ -9,6 +9,7 @@ class PhoneBooth {
         this.isRinging = true;
         this.isAnswered = false;
         this.active = true;
+        this.briefing = null; // per-booth mission card; falls back to the chapter-1 default
         
         // Animation state for ringing effect
         this.ringTimer = 0;
@@ -50,6 +51,7 @@ class PhoneBooth {
     // Deliberately vague about which church — the wrong-church gag in episode 1
     // only works if dispatch never named it.
     getMissionBriefing() {
+        if (this.briefing) return this.briefing;
         return {
             title: "Dispatch",
             message: "Pickup at the county hospital, east of here. They'll have him ready.\n\nDelivery's the church out past the canyon. Long road. Don't lose him again.\n\nTry not to make it two funerals.",

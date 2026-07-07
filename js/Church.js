@@ -1,12 +1,13 @@
 // Church destination point for delivery
 
 class Church {
-    constructor(x = 3500, y = 280, name = "St. Mary's") {
+    constructor(x = 3500, y = 280, name = "St. Mary's", variant = 'church') {
         this.x = x;
         this.y = y;
         this.name = name;
-        this.width = 400; // Church building width
-        this.height = 280; // Church building height
+        this.variant = variant; // 'church' | 'graveyard' — same delivery logic, different drawing
+        this.width = 400; // Building/grounds width
+        this.height = variant === 'graveyard' ? 150 : 280;
 
         // Delivery area (in front of church)
         this.deliveryAreaX = this.x - 100;
@@ -52,14 +53,16 @@ class Church {
         return xOverlap && yOverlap;
     }
     
-    canCompleteDelivery(hearse, coffin, corpse) {
+    // The casket must contain SOMETHING. Nobody specified what.
+    canCompleteDelivery(hearse, coffin, corpse, roadkill = null) {
         if (!this.active || this.hasReceivedDelivery) return false;
+        const cargoLoaded = corpse.inCoffin || (roadkill && roadkill.inCoffin);
         return this.checkHearseInDeliveryArea(hearse) &&
                coffin.inHearse &&
-               corpse.inCoffin;
+               cargoLoaded;
     }
 
-    completeDelivery(hearse, coffin, corpse) {
+    completeDelivery(hearse, coffin, corpse, roadkill = null) {
         if (this.hasReceivedDelivery) return false;
         
         this.hasReceivedDelivery = true;
@@ -104,11 +107,18 @@ class Church {
         }
         
         deliveryScore = Math.max(0, Math.round(deliveryScore)); // Round and don't go below 0
-        
-        console.log(`🕊️ Delivery completed at church! Final score: ${deliveryScore}/100`);
+
+        // The substitution: if the box holds the deer instead of the deceased,
+        // the verdict is its own thing. The family never opened the lid.
+        const substituted = roadkill && roadkill.inCoffin && !corpse.inCoffin;
+
+        console.log(`🕊️ Delivery completed at church! Final score: ${deliveryScore}/100${substituted ? ' (SUBSTITUTED)' : ''}`);
         return {
             score: deliveryScore,
-            message: this.getDeliveryMessage(deliveryScore),
+            substituted,
+            message: substituted
+                ? "Closed casket. The family was moved. Nobody looked."
+                : this.getDeliveryMessage(deliveryScore),
             hearseHealth: hearse.health || 0,
             coffinHealth: coffin.health || 0,
             corpseHealth: corpse.health || 0,
@@ -131,6 +141,118 @@ class Church {
         } else {
             return "We're getting calls about you. Do better.";
         }
+    }
+
+    // Graveyard variant: low stone wall, iron gate, headstones, one bare tree.
+    // Squat and mundane — a place, not a monument.
+    drawInkGraveyard(ctx, screenX) {
+        const w = this.width, h = this.height, x = screenX, y = this.y;
+        const groundY = y + h;
+        ctx.strokeStyle = '#000';
+        ctx.fillStyle = '#fff';
+        ctx.lineWidth = 2;
+
+        // Low wall along the full width, gap in the middle for the gate
+        const wallH = 26;
+        const gateW = 56;
+        const gateL = x + w / 2 - gateW / 2;
+        const gateR = x + w / 2 + gateW / 2;
+        for (const [wx0, wx1] of [[x, gateL], [gateR, x + w]]) {
+            ctx.fillRect(wx0, groundY - wallH, wx1 - wx0, wallH);
+            ctx.strokeRect(wx0, groundY - wallH, wx1 - wx0, wallH);
+            // Coping line
+            ctx.beginPath();
+            ctx.moveTo(wx0, groundY - wallH + 6);
+            ctx.lineTo(wx1, groundY - wallH + 6);
+            ctx.stroke();
+        }
+
+        // Gate pillars + shallow iron arch
+        const pillarW = 10, pillarH = 46;
+        ctx.fillRect(gateL - pillarW, groundY - pillarH, pillarW, pillarH);
+        ctx.strokeRect(gateL - pillarW, groundY - pillarH, pillarW, pillarH);
+        ctx.fillRect(gateR, groundY - pillarH, pillarW, pillarH);
+        ctx.strokeRect(gateR, groundY - pillarH, pillarW, pillarH);
+        ctx.beginPath();
+        ctx.moveTo(gateL - pillarW / 2, groundY - pillarH);
+        ctx.quadraticCurveTo(x + w / 2, groundY - pillarH - 26, gateR + pillarW / 2, groundY - pillarH);
+        ctx.stroke();
+        // Iron gate bars (open inward: just a few verticals, ajar)
+        ctx.lineWidth = 1.5;
+        for (let i = 1; i <= 4; i++) {
+            const bx = gateL + (gateW / 5) * i - 12;
+            ctx.beginPath();
+            ctx.moveTo(bx, groundY);
+            ctx.lineTo(bx - 6, groundY - 34);
+            ctx.stroke();
+        }
+        ctx.lineWidth = 2;
+
+        // Name plaque on the arch
+        if (this.name) {
+            ctx.font = 'bold 11px monospace';
+            ctx.textAlign = 'center';
+            ctx.fillStyle = '#000';
+            ctx.fillText(this.name.toUpperCase(), x + w / 2, groundY - pillarH - 32);
+            ctx.textAlign = 'start';
+            ctx.fillStyle = '#fff';
+        }
+
+        // Headstones behind the wall — assorted heights, one leaning
+        const stones = [
+            [0.10, 34, 16, 0], [0.20, 26, 14, 0], [0.32, 40, 16, -0.06],
+            [0.62, 30, 14, 0], [0.72, 44, 18, 0.05], [0.86, 28, 14, 0],
+        ];
+        for (const [fx, sh, sw, lean] of stones) {
+            const sx = x + w * fx;
+            const sy = groundY - wallH - 2;
+            ctx.save();
+            ctx.translate(sx, sy);
+            ctx.rotate(lean);
+            ctx.beginPath();
+            ctx.moveTo(-sw / 2, 0);
+            ctx.lineTo(-sw / 2, -sh + sw / 2);
+            ctx.arc(0, -sh + sw / 2, sw / 2, Math.PI, 0);
+            ctx.lineTo(sw / 2, 0);
+            ctx.closePath();
+            ctx.fill();
+            ctx.stroke();
+            ctx.restore();
+        }
+        // One cross among them
+        const crX = x + w * 0.47, crY = groundY - wallH - 2;
+        ctx.lineWidth = 3;
+        ctx.beginPath();
+        ctx.moveTo(crX, crY); ctx.lineTo(crX, crY - 40);
+        ctx.moveTo(crX - 10, crY - 28); ctx.lineTo(crX + 10, crY - 28);
+        ctx.stroke();
+        ctx.lineWidth = 2;
+
+        // Bare tree at the far end
+        const tx = x + w * 0.95;
+        ctx.lineWidth = 3;
+        ctx.beginPath();
+        ctx.moveTo(tx, groundY);
+        ctx.lineTo(tx - 4, groundY - h * 0.7);
+        ctx.stroke();
+        ctx.lineWidth = 2;
+        ctx.beginPath();
+        ctx.moveTo(tx - 3, groundY - h * 0.5);
+        ctx.lineTo(tx - 24, groundY - h * 0.72);
+        ctx.moveTo(tx - 4, groundY - h * 0.62);
+        ctx.lineTo(tx + 16, groundY - h * 0.85);
+        ctx.moveTo(tx - 4, groundY - h * 0.7);
+        ctx.lineTo(tx - 12, groundY - h * 0.92);
+        ctx.stroke();
+
+        // A fresh hole, waiting, just inside the gate — with a mound of earth
+        const holeX = x + w * 0.56, holeW = 46;
+        ctx.fillStyle = '#000';
+        ctx.fillRect(holeX, groundY - 3, holeW, 6);
+        ctx.beginPath();
+        ctx.ellipse(holeX + holeW + 22, groundY - 6, 18, 8, 0, Math.PI, 0);
+        ctx.fill();
+        ctx.stroke();
     }
 
     drawInkChurch(ctx, screenX) {
@@ -261,7 +383,7 @@ class Church {
         });
     }
 
-    draw(ctx, cameraX, hearse, coffin, corpse) {
+    draw(ctx, cameraX, hearse, coffin, corpse, roadkill = null) {
         if (!this.active) return;
         const screenX = this.x - cameraX;
         const deliveryAreaScreenX = this.deliveryAreaX - cameraX;
@@ -269,7 +391,7 @@ class Church {
         // Only draw if visible on screen
         if (screenX > -this.width && screenX < ctx.canvas.width + this.width) {
             const isHearseInDeliveryArea = this.checkHearseInDeliveryArea(hearse);
-            const canDeliver = this.canCompleteDelivery(hearse, coffin, corpse);
+            const canDeliver = this.canCompleteDelivery(hearse, coffin, corpse, roadkill);
 
             ctx.save();
 
@@ -278,7 +400,11 @@ class Church {
                 ctx.shadowBlur = 18;
             }
 
-            this.drawInkChurch(ctx, screenX);
+            if (this.variant === 'graveyard') {
+                this.drawInkGraveyard(ctx, screenX);
+            } else {
+                this.drawInkChurch(ctx, screenX);
+            }
             ctx.shadowBlur = 0;
 
             // Delivery area marker — ink only: solid-dark dashes when the hearse
@@ -300,12 +426,13 @@ class Church {
             // Show interaction prompts
             ctx.shadowBlur = 0;
 
+            const casketFilled = corpse.inCoffin || (roadkill && roadkill.inCoffin);
             if (canDeliver && !this.hasReceivedDelivery) {
                 Utils.drawPrompt(ctx, 'space — deliver', screenX + this.width / 2, this.y - 16);
-            } else if (isHearseInDeliveryArea && (!coffin.inHearse || !corpse.inCoffin)) {
+            } else if (isHearseInDeliveryArea && !this.hasReceivedDelivery && (!coffin.inHearse || !casketFilled)) {
                 if (!coffin.inHearse) {
                     Utils.drawPrompt(ctx, 'the casket goes in the hearse first', screenX + this.width / 2, this.y - 16);
-                } else if (!corpse.inCoffin) {
+                } else if (!casketFilled) {
                     Utils.drawPrompt(ctx, 'the casket is empty', screenX + this.width / 2, this.y - 16);
                 }
             } else if (!isHearseInDeliveryArea && !this.hasReceivedDelivery &&
