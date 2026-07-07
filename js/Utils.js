@@ -38,6 +38,28 @@ class Utils {
         return Math.floor(Math.random() * (max - min + 1)) + min;
     }
 
+    // Roadside sign: post + white board with black lettering. Used for
+    // PARKING, FRONT DESK, and whatever else the county deems worth naming.
+    static drawSign(ctx, centerX, groundY, label) {
+        ctx.save();
+        ctx.strokeStyle = '#000';
+        ctx.fillStyle = '#fff';
+        ctx.lineWidth = 2;
+        ctx.beginPath();
+        ctx.moveTo(centerX, groundY);
+        ctx.lineTo(centerX, groundY - 44);
+        ctx.stroke();
+        const w = Math.max(64, label.length * 8 + 20);
+        ctx.fillRect(centerX - w / 2, groundY - 68, w, 24);
+        ctx.strokeRect(centerX - w / 2, groundY - 68, w, 24);
+        ctx.fillStyle = '#000';
+        ctx.font = 'bold 9px monospace';
+        ctx.textAlign = 'center';
+        ctx.fillText(label.toUpperCase(), centerX, groundY - 53);
+        ctx.textAlign = 'start';
+        ctx.restore();
+    }
+
     // Shared in-world interaction label: small black chip, white lettering.
     // Every prompt in the game goes through this — one visual language.
     // (centerX, bottomY) in screen coordinates; bottomY is the chip's bottom edge.

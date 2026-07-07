@@ -11,6 +11,7 @@ class Bier {
         this.height = 34;    // deck height above ground
         this.active = true;
         this.hasCoffin = false;
+        this.hasCorpse = false; // the uncasketed ride from the morgue side door
         this.runaway = runaway; // this one rolls when loaded (Hillcrest)
         this.rolling = false;
         this.loose = false;     // has run off and not yet been delivered — grabbable
@@ -55,6 +56,10 @@ class Bier {
             game.coffin.y = this.y - game.coffin.height;
             game.coffin.velocityX = this.vx;
             game.coffin.velocityY = 0;
+        }
+        // Or the corpse rides it bare, as it comes from the morgue
+        if (this.hasCorpse && game && game.corpse.isActive && !game.corpse.inCoffin && !game.corpse.isPickedUp) {
+            game.corpse.moveToPosition(this.x + 8, this.y - 42);
         }
     }
 

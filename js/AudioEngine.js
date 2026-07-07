@@ -254,12 +254,17 @@ class AudioEngine {
             isPlaying: true
         };
 
-        // Jazz chord progression: Cmaj7 - Am7 - Dm7 - G7
+        // Noir jazz progression — eight bars, with an Ebmaj7 where the
+        // melancholy leaks in before resolving back around
         const chordProgression = [
             [261.63, 329.63, 392.00, 493.88], // Cmaj7
             [220.00, 261.63, 329.63, 415.30], // Am7
+            [174.61, 220.00, 261.63, 329.63], // Fmaj7
+            [164.81, 246.94, 293.66, 392.00], // Em7
             [293.66, 349.23, 440.00, 523.25], // Dm7
-            [196.00, 246.94, 293.66, 369.99] // G7
+            [155.56, 196.00, 233.08, 293.66], // Ebmaj7 — the cloud passing over
+            [293.66, 349.23, 440.00, 523.25], // Dm7
+            [196.00, 246.94, 293.66, 369.99]  // G7
         ];
 
         const startTime = this.audioContext.currentTime;
@@ -293,14 +298,41 @@ class AudioEngine {
             });
         });
 
-        // Loop the progression
+        // Loop the progression. (Must null backgroundMusic first — the
+        // re-entry guard at the top otherwise swallows the loop and the
+        // music dies after one cycle, which is thematic but unintended.)
         setTimeout(() => {
             if (this.backgroundMusic && this.backgroundMusic.isPlaying) {
-                this.backgroundMusic.oscillators = [];
-                this.backgroundMusic.gains = [];
+                this.backgroundMusic = null;
                 this.startBackgroundMusic();
             }
-        }, 32000); // 4 chords * 8 seconds
+        }, chordProgression.length * 8000);
+    }
+
+    // Hitchcock stab — a shrieking minor-second string cluster for the
+    // windshield moments (the daymare slam, the deer). Layer over
+    // playCorpseImpact for the full Bernard Herrmann.
+    playStab() {
+        if (!this.isInitialized) return;
+        try {
+            this.ensureAudioContext();
+            const now = this.audioContext.currentTime;
+            const freqs = [622.25, 659.26, 1244.51, 1318.51]; // Eb5/E5 + octaves
+            for (const f of freqs) {
+                const osc = this.audioContext.createOscillator();
+                const gain = this.audioContext.createGain();
+                osc.type = 'sawtooth';
+                osc.frequency.value = f;
+                gain.gain.setValueAtTime(0.06, now);
+                gain.gain.exponentialRampToValueAtTime(0.001, now + 0.9);
+                osc.connect(gain);
+                gain.connect(this.masterGain);
+                osc.start(now);
+                osc.stop(now + 1);
+            }
+        } catch (error) {
+            console.warn('Stab failed:', error);
+        }
     }
 
     stopBackgroundMusic() {

@@ -21,8 +21,11 @@ class StickmanGame {
         this.coffin.buildMatterBody(this.physics); // Phase 4: coffin as Matter body when free
         this.corpse = new Corpse(-1000, 300); // Start off-screen until hospital spawns them
 
-        // Mark them as inactive until hospital interaction
-        this.coffin.isActive = false;
+        // The empty coffin rides in the hearse from the start — discovering
+        // that the box must come OUT before the client can go IN is part of
+        // the hospital pickup. The corpse waits for the front desk.
+        this.coffin.isActive = true;
+        this.coffin.inHearse = true;
         this.corpse.isActive = false;
         this.phoneBooth = new PhoneBooth(800, 300); // Dispatch phone booth for missions
         this.hospital = new Hospital(2500, 280); // Hospital morgue pickup location
@@ -46,7 +49,7 @@ class StickmanGame {
 
         // Biers — coffins are collected from and delivered onto wheeled carts.
         // Chapter applies rebuild this array; chapter 1's are set up here.
-        this.hospitalBier = new Bier(3140);
+        this.hospitalBier = new Bier(3060); // waits by the hospital's side door
         this.church.bier = new Bier(21980);
         this.biers = [this.hospitalBier, this.church.bier];
         // this.potholeManager = new PotholeManager(); // Terrain hazards - REMOVED
@@ -276,13 +279,14 @@ class StickmanGame {
             return;
         }
 
-        // Handle spacebar interactions
+        // Handle spacebar interactions (locked out during the daymare —
+        // you cannot leave a dream by pressing a button)
         if (this.input.isKeyPressed('Space')) {
             if (this.deathState === 'dead') {
                 this.respawnAtCheckpoint();
             } else if (this.missionBriefing) {
                 this.dismissMissionBriefing();
-            } else {
+            } else if (!this.dreamSequence.isActive()) {
                 this.handleInteractions();
             }
             this.input.clearKey('Space');
@@ -416,18 +420,6 @@ class StickmanGame {
             this.corpse.ejectFromCoffin(this.coffin.x, this.coffin.y, this.coffin.velocityX);
         }
 
-        // Check hospital cargo spawning (now requires manual interaction + hearse in loading area)
-        if (this.hospital.playerHasInteracted && !this.hospital.hasSpawnedCargo) {
-            if (this.hospital.checkHearseInLoadingArea(this.hearse)) {
-                console.log('🚗 Hearse in loading area - spawning cargo!');
-                if (this.hospital.spawnCargo(this.coffin, this.corpse, this.hearse) && this.hospitalBier) {
-                    // They wheel him out on the bier, as is proper
-                    this.coffin.onBier = true;
-                    this.hospitalBier.hasCoffin = true;
-                }
-            }
-        }
-
         // Coffin rescue — if it sinks below terrain, surface it
         if (this.coffin.isActive && !this.coffin.inHearse && !this.coffin.isPickedUp && !this.coffin.onBier && this.coffin.body) {
             const maxGroundY = this.terrain.getGroundYAt(this.coffin.x + this.coffin.width / 2) + 30;
@@ -546,10 +538,29 @@ class StickmanGame {
             }
         }
 
-        // Check hospital door interaction (second priority)
-        if (this.hospital.canPlayerInteractWithDoor(this.player)) {
+        // Hospital front desk: sign here, and here, and here — then out the
+        // side door with the cart. The rest is the player's problem: box out
+        // of the hearse, client into the box, box back into the hearse.
+        if (this.hospital.active && !this.hospital.hasSpawnedCargo &&
+            this.hospital.canPlayerInteractWithDoor(this.player)) {
             this.hospital.interactWithDoor();
-            return; // Exit early after hospital interaction
+            this.hospital.hasSpawnedCargo = true;
+            this.showMissionBriefing({
+                title: 'Front Desk',
+                message: "— Pickup. The Hillside fellow.\n— Sign here. And here. Initial here.\n— …\n— Side door. He's ready. Mind the wheels.",
+                instruction: "Push the cart to the hearse. The box is in the back."
+            });
+            // He re-emerges at the side door, cart in hand
+            this.player.x = this.hospital.x + this.hospital.width + 26;
+            this.hospitalBier.x = this.player.x + 60;
+            this.hospitalBier.loose = true;
+            this.hospitalBier.hasCorpse = true;
+            this.corpse.isActive = true;
+            this.corpse.inCoffin = false;
+            this.corpse.isPickedUp = false;
+            this.corpse.moveToPosition(this.hospitalBier.x + 8, this.hospitalBier.y - 42);
+            console.log('🏥 Front desk done — corpse on the cart at the side door');
+            return;
         }
 
         // Roadkill pickup (chapter 3) — hands must be empty
@@ -580,8 +591,9 @@ class StickmanGame {
         }
         if (!this.player.inVehicle && this.corpse.isActive && !this.coffin.isPickedUp && !this.corpse.isPickedUp &&
             distanceToCorpse < 60 && !this.corpse.inCoffin && this.corpse.ejectionImmunityTimer === 0) {
-            // Pick up corpse
+            // Pick up corpse (off a cart, if that's where he was)
             this.corpse.isPickedUp = true;
+            for (const b of this.biers) b.hasCorpse = false;
             console.log('Picked up corpse');
 
         // Check detached head pickup (only if NOT already carrying it and NOT already in coffin)

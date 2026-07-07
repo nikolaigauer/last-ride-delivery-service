@@ -11,10 +11,11 @@ class Hospital {
         this.doorX = this.x + this.width / 2;
         this.doorY = this.y + this.height;
 
-        // Loading area (to the right of hospital)
-        this.loadingAreaX = this.x + this.width + 50;
+        // Parking lot (set back from the building — pushing the cart over is
+        // part of the job)
+        this.loadingAreaX = this.x + this.width + 480;
         this.loadingAreaY = this.y + this.height;
-        this.loadingAreaWidth = 300; // Wider than hearse
+        this.loadingAreaWidth = 280;
         this.loadingAreaHeight = 20;
 
         // Mission state
@@ -39,8 +40,8 @@ class Hospital {
         this.doorX = this.x + this.width / 2;
         this.doorY = flatGroundY;
         
-        // Update loading area position - also use flat terrain for loading area
-        this.loadingAreaX = this.x + this.width + 50;
+        // Update parking lot position - also use flat terrain
+        this.loadingAreaX = this.x + this.width + 480;
         this.loadingAreaY = flatGroundY - this.loadingAreaHeight;
     }
 
@@ -248,21 +249,46 @@ class Hospital {
             ctx.strokeRect(loadingAreaScreenX, this.loadingAreaY, this.loadingAreaWidth, this.loadingAreaHeight);
             ctx.setLineDash([]);
 
-            // Show interaction prompts
-            if (hearse && player) {
-                ctx.shadowBlur = 0;
+            // Signage — the county believes in signage
+            const groundY = this.y + this.height;
+            Utils.drawSign(ctx, screenX + this.width / 2 + 80, groundY, 'front desk');
+            Utils.drawSign(ctx, loadingAreaScreenX + this.loadingAreaWidth / 2, groundY, 'parking');
 
-                // Hospital door interaction
-                if (canPlayerInteract && !this.playerHasInteracted) {
-                    Utils.drawPrompt(ctx, 'space — collect the deceased', screenX + this.width / 2, this.y - 16);
-                } else if (this.playerHasInteracted && !this.hasSpawnedCargo) {
-                    Utils.drawPrompt(ctx, "they're bringing him out", screenX + this.width / 2, this.y - 16);
-                }
+            // Municipal landscaping between the side door and the lot:
+            // two bushes and a tree, none of them thriving
+            for (const bx of [screenX + this.width + 130, screenX + this.width + 330]) {
+                ctx.fillStyle = '#fff';
+                ctx.strokeStyle = '#000';
+                ctx.lineWidth = 2;
+                ctx.beginPath();
+                ctx.arc(bx - 12, groundY - 10, 12, Math.PI, 0);
+                ctx.arc(bx + 4, groundY - 14, 14, Math.PI, 0);
+                ctx.arc(bx + 18, groundY - 9, 10, Math.PI, 0);
+                ctx.lineTo(bx - 24, groundY);
+                ctx.closePath();
+                ctx.fill();
+                ctx.stroke();
+            }
+            {
+                const tx = screenX + this.width + 235;
+                ctx.strokeStyle = '#000';
+                ctx.lineCap = 'round';
+                ctx.lineWidth = 4;
+                ctx.beginPath();
+                ctx.moveTo(tx, groundY);
+                ctx.lineTo(tx + 3, groundY - 70);
+                ctx.stroke();
+                ctx.lineWidth = 2;
+                ctx.beginPath();
+                ctx.moveTo(tx + 2, groundY - 52); ctx.lineTo(tx - 16, groundY - 74);
+                ctx.moveTo(tx + 3, groundY - 62); ctx.lineTo(tx + 20, groundY - 82);
+                ctx.moveTo(tx + 3, groundY - 70); ctx.lineTo(tx - 6, groundY - 92);
+                ctx.stroke();
+            }
 
-                // Loading area guidance (the highlighted box says the rest)
-                if (!isHearseInLoadingArea && this.playerHasInteracted) {
-                    Utils.drawPrompt(ctx, 'park in the loading area →', loadingAreaScreenX + this.loadingAreaWidth / 2, this.loadingAreaY - 8);
-                }
+            // Front-desk prompt
+            if (player && canPlayerInteract && !this.hasSpawnedCargo) {
+                Utils.drawPrompt(ctx, 'space — front desk', screenX + this.width / 2, this.y + this.height - 130);
             }
 
             ctx.restore();

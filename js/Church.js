@@ -439,6 +439,11 @@ class Church {
             ctx.strokeRect(deliveryAreaScreenX, this.deliveryAreaY, this.deliveryAreaWidth, this.deliveryAreaHeight);
             ctx.setLineDash([]);
 
+            // The county believes in signage here, too
+            if (!this.hasReceivedDelivery) {
+                Utils.drawSign(ctx, deliveryAreaScreenX - 46, this.deliveryAreaY + this.deliveryAreaHeight, 'parking');
+            }
+
             // Show interaction prompts
             ctx.shadowBlur = 0;
 

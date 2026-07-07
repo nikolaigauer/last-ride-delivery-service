@@ -140,6 +140,33 @@ lawn during the drop; nobody says a word about it. Final call:
 
 ---
 
+## REVISED ARC (July 2026 restructure — implemented)
+
+- **Ch.3**: corpse lost INTO THE RIVER (uphill door-pop, coffin slides back
+  down the hill, body drifts downstream) → deer strike → roadkill substituted
+  → delivered at Hillcrest, closed casket, plain bier. *"Nobody looked."*
+- **Ch.4 — "The Second Funeral"**: a fisherman finds him ten miles downriver.
+  Dispatch: *"The one from Hillcrest. Don't ask how I know."* Open casket at
+  St. Anthony's — the whole man. His box waits on a cart at the crest of the
+  bluff; approach it and it departs east downhill. The tumble severs the head
+  (no more tree); the head rolls to a storm drain; the melon completes him.
+
+## Future scenarios (user-approved concepts, unbuilt)
+
+- **Delivery front-desk ritual**: mirror the hospital pickup at destinations —
+  park (sign), walk to entrance, brief staff dialogue modal, come out with
+  their cart, transfer the casket, wheel it to the designated door.
+- **THE WRONG COFFIN SNATCH** (episode-1 upgrade): when the driver returns to
+  St. Mary's to retrieve the mis-delivered casket, the funeral is ALREADY IN
+  MOTION — and he snatches *a* coffin. Any coffin. Wrong body. Awkward
+  interaction dialogue as he wheels it out mid-service.
+- **Weight-based jump**: a gap that can only be jumped with an EMPTY hearse —
+  unload casket/corpse, jump, then manually drag them across/around. Ideally
+  it's the CORPSE that gets dragged.
+- **Weight & desecration effort**: corpse/casket weight should cost the player
+  real effort (slow carry, stamina, drag physics) — the work of the forbidden
+  should be felt more as the game goes on.
+
 ## Brainstorm notes
 
 - Driver name candidates: keep him unnamed as long as possible; dispatch can call

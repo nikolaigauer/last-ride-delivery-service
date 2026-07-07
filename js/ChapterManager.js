@@ -60,57 +60,31 @@ class ChapterManager {
     // Per-chapter world props that don't warrant their own entity class.
     // Called from Game.render after buildings, before entities.
     drawProps(ctx, cameraX) {
+        // Chapter 3: the river in its cut, moving like it has somewhere to be
+        if (this.currentIndex === 2) {
+            const wx = CHAPTER3_GAP_X - cameraX;
+            if (wx > -150 && wx < ctx.canvas.width + 150) {
+                const t = performance.now() / 350;
+                ctx.save();
+                ctx.strokeStyle = 'rgba(255,255,255,0.75)';
+                ctx.lineWidth = 1.6;
+                for (let i = 0; i < 3; i++) {
+                    const wy = CHAPTER3_GROUND_TOP + 38 + i * 14;
+                    const drift = Math.sin(t + i * 1.7) * 5;
+                    ctx.beginPath();
+                    ctx.moveTo(wx - 30 + drift, wy);
+                    ctx.quadraticCurveTo(wx - 10 + drift, wy - 4, wx + 8 + drift, wy);
+                    ctx.quadraticCurveTo(wx + 22 + drift, wy + 3, wx + 34 + drift, wy);
+                    ctx.stroke();
+                }
+                ctx.restore();
+            }
+            return;
+        }
         if (this.currentIndex !== 3) return;
         const groundTop = CHAPTER4_GROUND_TOP;
 
-        // Warning sign, west of the tree
-        {
-            const sx = 6050 - cameraX;
-            if (sx > -100 && sx < ctx.canvas.width + 100) {
-                ctx.strokeStyle = '#000';
-                ctx.fillStyle = '#fff';
-                ctx.lineWidth = 2;
-                ctx.beginPath();
-                ctx.moveTo(sx, groundTop); ctx.lineTo(sx, groundTop - 46);
-                ctx.stroke();
-                ctx.fillRect(sx - 44, groundTop - 74, 88, 28);
-                ctx.strokeRect(sx - 44, groundTop - 74, 88, 28);
-                ctx.fillStyle = '#000';
-                ctx.font = 'bold 9px monospace';
-                ctx.textAlign = 'center';
-                ctx.fillText('MIND THE', sx, groundTop - 62);
-                ctx.fillText('TREES', sx, groundTop - 52);
-                ctx.textAlign = 'start';
-            }
-        }
-
-        // The tree, with one long branch over the road at hearse-roof height
-        {
-            const tx = CHAPTER4_BRANCH_X - cameraX;
-            if (tx > -300 && tx < ctx.canvas.width + 300) {
-                ctx.strokeStyle = '#000';
-                ctx.lineCap = 'round';
-                ctx.lineWidth = 7;
-                ctx.beginPath(); // trunk, leaning over the road
-                ctx.moveTo(tx - 40, groundTop);
-                ctx.quadraticCurveTo(tx - 44, groundTop - 90, tx - 18, groundTop - 118);
-                ctx.stroke();
-                ctx.lineWidth = 5;
-                ctx.beginPath(); // THE branch
-                ctx.moveTo(tx - 22, groundTop - 108);
-                ctx.quadraticCurveTo(tx + 60, groundTop - 66, tx + 130, groundTop - 56);
-                ctx.stroke();
-                ctx.lineWidth = 2.5;
-                ctx.beginPath(); // twigs
-                ctx.moveTo(tx + 40, groundTop - 80); ctx.lineTo(tx + 58, groundTop - 100);
-                ctx.moveTo(tx + 90, groundTop - 60); ctx.lineTo(tx + 106, groundTop - 78);
-                ctx.moveTo(tx - 20, groundTop - 116); ctx.lineTo(tx - 2, groundTop - 148);
-                ctx.moveTo(tx - 30, groundTop - 100); ctx.lineTo(tx - 58, groundTop - 128);
-                ctx.stroke();
-            }
-        }
-
-        // The storm drain, east of the tree
+        // The storm drain, at the bottom of the bluff's eastern slope
         {
             const dx = CHAPTER4_DRAIN_X - cameraX;
             if (dx > -100 && dx < ctx.canvas.width + 100) {
@@ -158,51 +132,52 @@ class ChapterManager {
         }
     }
 
-    // === Chapter 4 scripted event: the branch starts a real cascade ===
-    // The branch physically jolts the hearse; from there the game's own
-    // systems do the damage: door pops → coffin ejects → lid pops → corpse
-    // ragdolls onto the road → the head separates in the tumble and rolls
-    // (and rolls) into the storm drain. Only the head's final roll is
-    // scripted — everything else is genuine physics, genuinely clumsy.
+    // === Chapter 4 scripted event: the fisherman's cart takes the hill ===
+    // The recovered corpse waits, boxed, on a cart at the crest of the bluff.
+    // Approach it on foot and it departs — east, downhill, into new country.
+    // Mid-slope the coffin leaves the cart, the lid pops, the body ragdolls
+    // down the slope, and the head separates in the tumble and rolls to the
+    // storm drain at the bottom. The tumble does the severing this time —
+    // no trees required.
     _updateChapter4Events(game) {
         const s = this._ch4;
         if (!s || s.phase === 'done') return;
+        const bier = this._ch4PickupBier;
         switch (s.phase) {
             case 'armed':
-                if (game.currentEpisode === 4 && game.player.inVehicle &&
-                    game.coffin.inHearse && game.corpse.inCoffin &&
-                    game.hearse.x + game.hearse.width * 0.7 > CHAPTER4_BRANCH_X) {
-                    // THUNK — the branch rakes the roof. Real jolt, real damage.
-                    if (game.hearse.chassis) {
-                        const v = game.hearse.chassis.velocity;
-                        Matter.Body.setVelocity(game.hearse.chassis, { x: v.x * 0.35, y: 3.5 });
-                        Matter.Body.setAngularVelocity(game.hearse.chassis, -0.06);
-                    }
-                    game.hearse.health = Math.max(0, game.hearse.health - 15);
-                    game.hearse.bumpCounter = game.hearse.bumpThreshold; // door pops
-                    if (game.audio && game.audio.playCorpseImpact) game.audio.playCorpseImpact(2);
-                    s.phase = 'awaitEject';
+                if (bier && bier.hasCoffin && !game.player.inVehicle &&
+                    Math.abs((game.player.x + 20) - (bier.x + bier.width / 2)) < 135) {
+                    bier.rolling = true;
+                    bier.loose = true;
+                    bier.chocked = false;
+                    bier.vx = 1.4; // east. downhill. of course.
+                    if (!game.monologue) game.monologue = new MonologueSystem();
+                    game.monologue.playNow('No— not again. No.');
+                    s.phase = 'chase';
                     s.timer = 0;
                 }
                 break;
-            case 'awaitEject':
+            case 'chase':
                 s.timer++;
-                if (!game.coffin.inHearse) {
-                    // Coffin's on the road — the landing takes the lid with it
+                // Mid-slope, at speed, the coffin dismounts
+                if (bier.x > 2980 || s.timer > 500) {
+                    game.coffin.velocityX = Math.max(2.6, bier.vx + 0.8);
+                    game.coffin.velocityY = -1.5;
+                    game.coffin.onBier = false;
+                    bier.hasCoffin = false;
                     game.coffin.bumpCounter = Math.max(game.coffin.bumpCounter, game.coffin.bumpThreshold);
                     game.coffin.lidOpen = true;
                     game.coffin.lidOpenedByBump = true;
-                    s.phase = 'awaitSpill';
+                    if (game.audio && game.audio.playCorpseImpact) game.audio.playCorpseImpact(1.5);
+                    s.phase = 'spill';
                     s.timer = 0;
-                } else if (s.timer > 240) {
-                    s.phase = 'armed'; // failsafe
                 }
                 break;
-            case 'awaitSpill':
+            case 'spill':
                 s.timer++;
-                // Game's update ejects the corpse; let the ragdoll hit the road
-                // and flop for a beat before the tumble claims the head.
-                if (!game.corpse.inCoffin && s.timer > 35) {
+                // Game's update ejects the corpse; let the ragdoll tumble a
+                // beat down the slope before the tumble claims the head.
+                if (!game.corpse.inCoffin && s.timer > 30) {
                     if (!game.corpse.headDetached) game.corpse.detachHead();
                     s.phase = 'headRolls';
                     s.timer = 0;
@@ -217,12 +192,13 @@ class ChapterManager {
                 s.timer++;
                 const head = game.corpse.detachedHead;
                 if (!head) { s.phase = 'gone'; s.timer = 0; break; }
-                // Ground-hugging hops, shrinking as it rolls — a head with
-                // somewhere to be. It passes the parked hearse. It keeps going.
-                const T = 130;
+                // Ground-hugging hops down the rest of the slope — a head
+                // with somewhere to be. It keeps going.
+                const T = 120;
                 const t = Math.min(1, s.timer / T);
                 const x = s.fromX + (CHAPTER4_DRAIN_X - s.fromX) * t;
-                const y = (CHAPTER4_GROUND_TOP - 9) - Math.abs(Math.sin(t * Math.PI * 5)) * 26 * (1 - t * 0.7);
+                const y = game.terrain.getGroundYAt(x) - 9 -
+                    Math.abs(Math.sin(t * Math.PI * 5)) * 24 * (1 - t * 0.7);
                 head.x = x; head.y = y;
                 head.oldX = x; head.oldY = y; // script drives; physics idles
                 head.velX = 0; head.velY = 0;
@@ -264,7 +240,12 @@ class ChapterManager {
             case 'doorPopped':
                 s.timer++;
                 if (!game.coffin.inHearse) {
-                    // Coffin is out — make sure the lid goes with it
+                    // Coffin is out on the slope — help it remember gravity,
+                    // and make sure the lid goes with it
+                    if (game.coffin.body) {
+                        Matter.Body.setVelocity(game.coffin.body, { x: -3.5, y: 0 });
+                        Matter.Body.setAngularVelocity(game.coffin.body, -0.08);
+                    }
                     game.coffin.bumpCounter = Math.max(game.coffin.bumpCounter, game.coffin.bumpThreshold);
                     game.coffin.lidOpen = true;
                     game.coffin.lidOpenedByBump = true;
@@ -289,24 +270,28 @@ class ChapterManager {
                 }
                 break;
             case 'tumbling': {
+                // Bouncing back DOWN the hill it just came up, into the water
                 s.timer++;
-                const T = 120;
+                const T = 110;
                 const t = Math.min(1, s.timer / T);
-                const x = s.fromX + (CHAPTER3_GAP_X - 20 - s.fromX) * t;
-                let y;
-                if (t < 0.72) {
-                    // Bouncing down the road toward the gap
-                    const tt = t / 0.72;
-                    const roadY = CHAPTER3_GROUND_TOP - 45;
-                    y = s.fromY + (roadY - s.fromY) * tt - Math.abs(Math.sin(tt * Math.PI * 3)) * 22;
-                } else {
-                    // Over the edge, straight down
-                    const tt = (t - 0.72) / 0.28;
-                    y = (CHAPTER3_GROUND_TOP - 45) + tt * 300;
-                }
+                const x = s.fromX + (CHAPTER3_GAP_X - 6 - s.fromX) * t;
+                const groundY = game.terrain.getGroundYAt(Math.max(CHAPTER3_GAP_END + 10, x));
+                const y = groundY - 42 - Math.abs(Math.sin(t * Math.PI * 4)) * 24 * (1 - t * 0.5);
                 game.corpse.moveToPosition(x, y);
                 if (t >= 1) {
-                    game.corpse.isActive = false; // gone. properly gone.
+                    s.phase = 'drifting';
+                    s.timer = 0;
+                }
+                break;
+            }
+            case 'drifting': {
+                // In the river. Sinking, and leaving — downstream is that way.
+                s.timer++;
+                const x = CHAPTER3_GAP_X - 6 - s.timer * 0.35;
+                const y = CHAPTER3_GROUND_TOP - 20 + s.timer * 1.1;
+                game.corpse.moveToPosition(x, y);
+                if (s.timer >= 75) {
+                    game.corpse.isActive = false; // gone. downstream. for now.
                     if (!game.monologue) game.monologue = new MonologueSystem();
                     game.monologue.playNow('Of course.');
                     s.phase = 'gone';
@@ -336,6 +321,7 @@ class ChapterManager {
                 if (s.timer === 38) {
                     // THUMP.
                     if (game.audio && game.audio.playCorpseImpact) game.audio.playCorpseImpact(2);
+                    if (game.audio && game.audio.playStab) game.audio.playStab();
                     if (game.hearse.chassis) {
                         const v = game.hearse.chassis.velocity;
                         Matter.Body.setVelocity(game.hearse.chassis, { x: v.x * 0.25, y: v.y });
@@ -595,21 +581,17 @@ class ChapterManager {
                     { triggerX: 13000, text: "St. Margaret's. Better be the right one this time." },
                 ]);
 
-                // 7. Disable chapter-1 drawbridge during chapter 2
+                // 7. Disable chapter-1 drawbridge during chapter 2. (The old
+                // plank-over-gap puzzle is retired — the long empty road and
+                // the daymare ARE chapter 2.)
                 if (game.bridge) game.bridge.setActive(false);
+                if (game.plankRavine) game.plankRavine.active = false;
+                if (game.planks) {
+                    for (const p of game.planks) p.destroy && p.destroy();
+                    game.planks.length = 0;
+                }
 
-                // 8. Plank-bridged chasm + planks
-                if (!game.plankRavine) game.plankRavine = new PlankRavine();
-                game.plankRavine.configure(CHAPTER2_RAVINE_START, CHAPTER2_RAVINE_END, game.physics, CHAPTER2_GROUND_TOP);
-
-                if (!game.planks) game.planks = [];
-                // Clean up old plank physics bodies before respawning
-                for (const p of game.planks) p.destroy && p.destroy();
-                game.planks.length = 0;
-                // One plank, sized to span the chasm with 40px overhang
-                game.planks.push(new Plank(7500, 280, game.physics));
-
-                // 9. Chapter-aware respawn checkpoint (~1500px before the chasm)
+                // 8. Chapter-aware respawn checkpoint
                 game.checkpointX = 6300;
 
                 // 10. Arm the daymare (fires once, mid-flat-stretch after the ravine)
@@ -654,14 +636,16 @@ class ChapterManager {
                 game.graveyard.active = true;
                 game.graveyard.x = 13500;
                 game.graveyard.hasReceivedDelivery = false;
-                // The Hillcrest bier. It has wheels, and Hillcrest has a hill.
-                if (!game.graveyard.bier) game.graveyard.bier = new Bier(13380, true);
+                // The Hillcrest bier — an honest, stationary one. (The cart
+                // with opinions about hills comes later, with the real corpse.)
+                if (!game.graveyard.bier) game.graveyard.bier = new Bier(13380);
                 const gBier = game.graveyard.bier;
-                gBier.x = 13380; // near the gate — and near the lip of the hill
+                gBier.x = 13380;
                 gBier.hasCoffin = false;
-                gBier.runaway = true;
+                gBier.runaway = false;
                 gBier.rolling = false;
                 gBier.grabbed = false;
+                gBier.loose = false;
                 gBier.chocked = false;
                 gBier.vx = 0;
 
@@ -735,7 +719,7 @@ class ChapterManager {
                 game.monologue.setSnippets([
                     { triggerX: 2600, text: 'Same box. Same road. Same fellow.' },
                     { triggerX: 4300, text: 'People move things. Services. Graves. Whole lives.' },
-                    { triggerX: 5900, text: 'Smooth so far.' },
+                    { triggerX: 6250, text: 'Smooth so far.' },
                     { triggerX: 10300, text: "It's what he would have wanted. Probably." },
                     { triggerX: 12300, text: 'Hillcrest. Last stop. His, anyway.' },
                 ]);
@@ -788,10 +772,15 @@ class ChapterManager {
                 game.church4.bier.x = 12950;
                 game.church4.bier.hasCoffin = false;
                 game.church4.bier.chocked = false;
-                if (!this._ch4PickupBier) this._ch4PickupBier = new Bier(1470);
-                this._ch4PickupBier.x = 1470;
+                // The fisherman's cart, at the crest of the bluff. Unchocked.
+                if (!this._ch4PickupBier) this._ch4PickupBier = new Bier(CHAPTER4_BLUFF_X);
+                this._ch4PickupBier.x = CHAPTER4_BLUFF_X;
                 this._ch4PickupBier.hasCoffin = true;
-                this._ch4PickupBier.chocked = true;
+                this._ch4PickupBier.chocked = false;
+                this._ch4PickupBier.loose = false;
+                this._ch4PickupBier.rolling = false;
+                this._ch4PickupBier.grabbed = false;
+                this._ch4PickupBier.vx = 0;
                 game.biers = [this._ch4PickupBier, game.church4.bier];
 
                 // 4. Phones
@@ -801,9 +790,9 @@ class ChapterManager {
                 game.openingPhone.isRinging = true;
                 game.openingPhone.isAnswered = false;
                 game.openingPhone.briefing = {
-                    title: 'Dispatch',
-                    message: "New fellow today. A professor. Emeritus, whatever that means.\n\nFamily wants an open casket, so keep him presentable. The whole man, top to bottom.\n\nSt. Anthony's, out east. Mind the trees.",
-                    instruction: 'Collect the casket. Drive east.'
+                    title: 'Dispatch — Quiet Job',
+                    message: "A fisherman pulled something out of the river, ten miles down from the crossing. It's him. The one from Hillcrest. Don't ask how I know.\n\nFamily wants a real service after all — open casket, St. Anthony's. The whole man, presentable.\n\nHe's boxed and waiting on the bluff. Collect him quietly.",
+                    instruction: 'The bluff, east of here. Then St. Anthony’s.'
                 };
                 if (!game.closingPhone) game.closingPhone = new PhoneBooth(14500, 300);
                 game.closingPhone.active = true;
@@ -811,7 +800,8 @@ class ChapterManager {
                 game.closingPhone.isRinging = false;
                 game.closingPhone.isAnswered = false;
 
-                // 5. The professor, boxed and waiting on his bier
+                // 5. The recovered client, boxed on the cart at the crest.
+                //    Ten miles of river did him no favors.
                 game.coffin.isActive = true;
                 game.coffin.inHearse = false;
                 game.coffin.isPickedUp = false;
@@ -819,15 +809,14 @@ class ChapterManager {
                 game.coffin.lidOpen = false;
                 game.coffin.lidOpenedByBump = false;
                 game.coffin.bumpCounter = 0;
-                game.coffin.x = 1480;
-                game.coffin.y = 395 - 34 - game.coffin.height;
+                game.coffin.x = CHAPTER4_BLUFF_X + 8;
+                game.coffin.y = 300 - 34 - game.coffin.height;
                 game.coffin.velocityX = 0;
                 game.coffin.velocityY = 0;
-                // A new client: whole, for now
                 game.corpse.isActive = true;
                 game.corpse.inCoffin = true;
                 game.corpse.isPickedUp = false;
-                game.corpse.health = 100;
+                game.corpse.health = 55; // he's seen better days. and drier ones.
                 game.corpse.detachedHead = null;
                 game.corpse.moveToPosition(game.coffin.x, game.coffin.y);
 
@@ -851,11 +840,10 @@ class ChapterManager {
                 // 8. Monologue
                 if (!game.monologue) game.monologue = new MonologueSystem();
                 game.monologue.setSnippets([
-                    { triggerX: 1200, text: 'They just leave them out, these days.' },
-                    { triggerX: 3400, text: 'A professor. All that thinking. Same box as everyone.' },
+                    { triggerX: 1100, text: 'Ten miles downriver. Persistent fellow.' },
                     { triggerX: 5300, text: 'Open casket. Everyone wants to look. Nobody wants to see.' },
                     { triggerX: 11000, text: 'Almost there. Keep the lid shut.' },
-                    { triggerX: 12200, text: "St. Anthony's. Open casket. Say nothing." },
+                    { triggerX: 12200, text: "St. Anthony's. Say nothing." },
                 ]);
 
                 // 9. Checkpoint + arm the branch
@@ -880,10 +868,12 @@ const CHAPTER2_RAVINE_START = 7920; // visible left cliff edge
 const CHAPTER2_RAVINE_END = 8080; // visible right cliff edge
 const CHAPTER2_GROUND_TOP = 393; // Top surface where the hearse rolls (matches groundY at cliff edges with subtle undulation)
 
-// Chapter 4 terrain: rolling road with no chasms at all. The hazard hangs at
-// hearse-roof height, exactly where dispatch said it would be.
-const CHAPTER4_BRANCH_X = 6500;   // the tree's branch crosses the road here
-const CHAPTER4_DRAIN_X = 7150;    // where the head ends up
+// Chapter 4 terrain: the fisherman's bluff — a climb to a crest where the
+// recovered corpse waits on a cart, and a long slope EAST for the cart to
+// take without permission. The head's destination (a storm drain) sits at
+// the bottom of that slope.
+const CHAPTER4_BLUFF_X = 2300;    // the cart waits at the crest
+const CHAPTER4_DRAIN_X = 3900;    // where the head ends up
 const CHAPTER4_GROUND_TOP = 395;  // road surface through the flat staging areas
 
 function buildChapter4Terrain(worldWidth) {
@@ -897,13 +887,17 @@ function buildChapter4Terrain(worldWidth) {
         variation += Math.sin(x * 0.0013) * 8;
         variation += Math.sin(x * 0.0037) * 4;
 
-        // Flat through the tree/drain gag so the staging is exact
-        if (x > 5800 && x < 7600) variation = 0;
-        // Flatten under the pickup, the melon stand, St. Anthony's, and phones
-        if (Math.abs(x - 1500) < 300) variation = 0;
+        // Flat spawn + phone
+        if (x < 850) variation = 0;
+        // The bluff: up, crest, and the long eastern slope down to the drain
+        if (x >= 1400 && x < 2060) variation = -((x - 1400) / 660) * 80;
+        else if (x >= 2060 && x < 2620) variation = -80;
+        else if (x >= 2620 && x < 3560) variation = -80 + ((x - 2620) / 940) * 80;
+        else if (x >= 3560 && x < 4300) variation = 0; // drain flats
+        // Flatten under the melon stand, St. Anthony's, and the last phone
         if (Math.abs(x - 9000) < 200) variation = 0;
         if (Math.abs(x - 13200) < 450) variation = 0;
-        if (Math.abs(x - 700) < 100 || Math.abs(x - 14500) < 100) variation = 0;
+        if (Math.abs(x - 14500) < 100) variation = 0;
 
         points.push({
             x,
@@ -914,13 +908,14 @@ function buildChapter4Terrain(worldWidth) {
     return points;
 }
 
-// Chapter 3 terrain: rolling road, one narrow chasm ("Dead Man's Gap") that is
-// already bridged for the hearse — the hazard isn't the road, it's the script.
-const CHAPTER3_GAP_X = 6800;      // single deep terrain point
-const CHAPTER3_GAP_START = 6760;  // visible left cliff edge
-const CHAPTER3_GAP_END = 6840;    // visible right cliff edge
-const CHAPTER3_GROUND_TOP = 395;  // road surface at the gap edges
-const CHAPTER3_LOSS_X = 6250;     // where the scripted loss begins (west of the gap)
+// Chapter 3 terrain: rolling road, a RIVER in a narrow cut (bridged), then a
+// long climb. The loss happens ON the climb: door pops, the coffin slides
+// back down the hill it just came up, and the body goes into the water.
+const CHAPTER3_GAP_X = 6000;      // the river (single deep terrain point)
+const CHAPTER3_GAP_START = 5960;  // west bank
+const CHAPTER3_GAP_END = 6040;    // east bank
+const CHAPTER3_GROUND_TOP = 395;  // road surface at the banks
+const CHAPTER3_LOSS_X = 6740;     // mid-climb, past the river — where it starts
 
 function buildChapter3Terrain(worldWidth) {
     const points = [];
@@ -934,15 +929,20 @@ function buildChapter3Terrain(worldWidth) {
         variation += Math.sin(x * 0.0011) * 9;
         variation += Math.sin(x * 0.0031) * 4;
 
-        // Dead Man's Gap: single unrecoverable deep point
+        // The river: single unrecoverable deep point in a narrow cut
         if (x === CHAPTER3_GAP_X) {
             variation = 500;
         }
 
-        // Flatten approaches to the gap so the plank sits flush
-        if (x !== CHAPTER3_GAP_X && Math.abs(x - CHAPTER3_GAP_X) < 500) {
+        // Flat banks either side of the river so the bridge sits flush
+        if (x !== CHAPTER3_GAP_X && Math.abs(x - CHAPTER3_GAP_X) < 340) {
             variation = 0;
         }
+
+        // The climb east of the river — the coffin will come back down it
+        if (x >= 6340 && x < 7140) variation = -((x - 6340) / 800) * 80;
+        else if (x >= 7140 && x < 7540) variation = -80;
+        else if (x >= 7540 && x < 8140) variation = -80 + ((x - 7540) / 600) * 80;
 
         // Flatten under St. Margaret's and the phones
         if (Math.abs(x - 1300) < 450) variation = 0;
@@ -974,11 +974,6 @@ function buildChapter2Terrain(worldWidth) {
         // Subtle undulation — barely noticeable, intentionally monotonous
         variation += Math.sin(x * 0.0008) * 6;
         variation += Math.sin(x * 0.0023) * 3;
-
-        // The chasm: a single deep point that creates an unrecoverable pit
-        if (x === CHAPTER2_RAVINE_DEEP_X) {
-            variation = 500; // Way below visible canvas
-        }
 
         // Flatten under St. Margaret's (church2 sits at x=15500)
         if (Math.abs(x - 15500) < 400) {

@@ -186,7 +186,8 @@ class Hearse {
             console.log(`Door opened by bumps! ${this.bumpCounter}/${this.bumpThreshold}`);
         }
 
-        if (player.inVehicle) {
+        const dreaming = window.game && window.game.dreamSequence && window.game.dreamSequence.isActive();
+        if (player.inVehicle && !dreaming) {
             const rightPressed = input.isKeyPressed('ArrowRight');
             const leftPressed = input.isKeyPressed('ArrowLeft');
 

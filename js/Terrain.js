@@ -152,12 +152,14 @@ class Terrain {
 
             // Flatten terrain under buildings
             let finalVariation = variation;
-            
-            // Hospital area (x=2500, flatten ±400px around it for wider flat area)
-            const hospitalX = 2500;
-            if (Math.abs(x - hospitalX) < 400) {
-                const hospitalBlend = Math.max(0, 1 - Math.abs(x - hospitalX) / 400);
-                finalVariation = 0; // Force completely flat, no blending
+
+            // Hospital campus: hard flat through the building, side exit, and
+            // the parking lot beyond (the old ±400 blend left a slant that
+            // parked the hearse at an angle), with a short blend back to hills
+            if (x < 3900) {
+                finalVariation = 0;
+            } else if (x < 4300) {
+                finalVariation = variation * ((x - 3900) / 400);
             }
             
             // Church area (x=22000, flatten ±400px around it)

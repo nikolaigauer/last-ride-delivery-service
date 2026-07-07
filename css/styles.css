@@ -21,19 +21,22 @@ canvas {
     display: block;
 }
 
-/* Intertitle: silent-film title card. Plain white on black, hard cut, no ornament. */
+/* Intertitle modal: silent-film title card floating over the scene.
+   White on black, hard cut, no ornament — but the world stays visible. */
 #mission-overlay {
     position: absolute;
-    inset: 2px;
+    left: 50%;
+    top: 36px;
+    transform: translateX(-50%);
+    width: min(680px, 92%);
     box-sizing: border-box;
     display: flex;
     flex-direction: column;
-    justify-content: center;
     align-items: center;
-    padding: 40px 90px;
+    padding: 30px 48px 20px;
     font-family: Georgia, 'Times New Roman', serif;
     color: #fff;
-    background: #000;
+    background: rgba(0, 0, 0, 0.95);
     z-index: 10;
     pointer-events: none;
     text-align: center;
@@ -57,8 +60,8 @@ canvas {
 }
 
 #mission-overlay .dispatch-body {
-    font-size: 21px;
-    line-height: 1.75;
+    font-size: 18px;
+    line-height: 1.7;
     white-space: pre-line;
     max-width: 640px;
 }
@@ -75,10 +78,7 @@ canvas {
 }
 
 #mission-overlay .dispatch-dismiss {
-    position: absolute;
-    bottom: 22px;
-    left: 0;
-    right: 0;
+    margin-top: 24px;
     font-size: 10px;
     letter-spacing: 3px;
     color: rgba(255, 255, 255, 0.35);

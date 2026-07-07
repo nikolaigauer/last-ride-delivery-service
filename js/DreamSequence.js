@@ -86,10 +86,13 @@ class DreamSequence {
         }
         if (this.state === 'idle' || this.state === 'done') return;
 
-        // Leaving the hearse mid-dream wakes him early, without the climax
-        if (this.state !== 'pov' && this.state !== 'after' && !game.player.inVehicle) {
-            this._abort(game);
-            return;
+        // The dream cannot be escaped (Game blocks interactions while it
+        // runs) — and the hearse drives itself, gently, whether or not the
+        // dreamer's foot is on anything.
+        if (this.state !== 'after' && game.hearse.wheelA) {
+            const angVel = (game.hearse.maxSpeed / 20) * 0.5;
+            Matter.Body.setAngularVelocity(game.hearse.wheelA, angVel);
+            Matter.Body.setAngularVelocity(game.hearse.wheelB, angVel);
         }
 
         this.timer++;
@@ -128,6 +131,7 @@ class DreamSequence {
                 if (this.timer === this.POV_SLAM_FRAME) {
                     this.cracks = this._makeCracks();
                     if (game.audio && game.audio.playCorpseImpact) game.audio.playCorpseImpact(2);
+                    if (game.audio && game.audio.playStab) game.audio.playStab();
                 }
                 if (this.timer >= this.POV_FRAMES) {
                     // SNAP. Back to the world — and the mundane truth.
