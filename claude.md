@@ -55,6 +55,19 @@ per-chapter props (tree, drain, melon stand) in `ChapterManager.drawProps`.
 Substitute cargo is `Roadkill` (kind: 'deer'|'melon'); `Church.openCasket`
 gates head-completeness. Dream sequence fires once in ch.2.
 
+**Biers (Bier.js):** coffins are collected from and delivered onto wheeled
+carts — never auto-ejected. Delivery = casket set on the destination
+church's `bier` (watcher: `Game._checkBierDeliveries`), stationary, in
+zone, adequately filled. The Hillcrest bier is a `runaway`: first loading
+launches it downhill (cap 2.7 vs player walk 3); chase → grab (space) →
+haul back → release at the gate → chocked. **Bridge (ch.1)** is a weight
+scale: hearse or coffin on the platform lowers it (slow), removing weight
+snaps it up (fast); hearse weight on the deck holds it; a 120px dead gap
+between scale and deck zones makes the coffin mandatory. **Scripted
+events** (ch.3 loss + deer-strike POV, ch.4 branch cascade) live in
+`ChapterManager._updateChapter3Events/_updateChapter4Events` +
+`drawEventOverlay/drawProps`.
+
 Coffin/corpse/hearse damage persists across chapters. Death (falling off
 screen) → fade → space to respawn at `game.checkpointX`.
 
