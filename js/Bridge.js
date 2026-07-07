@@ -20,13 +20,20 @@ class Bridge {
         this.plankLen = (this.rightEdgeX - this.leftEdgeX) + 60; // 540px, 60px overhang
 
         // Bridge angle: 0 = horizontal, negative = tip pointing up-right (raised)
+        // Asymmetric speeds are the puzzle: weight lowers it slowly and
+        // gracefully; remove the weight and it SNAPS back up. Driving off the
+        // scale platform toward the bridge loses your weight mid-transition —
+        // unless something heavy stays behind, or the hearse is already on
+        // the deck (its own weight holds the bridge down).
         this.RAISED_ANGLE  = -0.47;
         this.LOWERED_ANGLE =  0.03;
         this.angle         = this.RAISED_ANGLE;
         this.targetAngle   = this.RAISED_ANGLE;
-        this.ANIM_SPEED    = 0.012;
+        this.LOWER_SPEED   = 0.012;
+        this.RAISE_SPEED   = 0.055;
 
         this.isDown = false;
+        this._weightOnPlatform = false;
 
         // Counterweight platform
         this.platX = 14680;
@@ -44,9 +51,9 @@ class Bridge {
         // Removed when bridge lowers, restored when raised again.
         // Spans full height so hearse can't jump over it.
         this.wallBody = Matter.Bodies.rectangle(
-            this.leftEdgeX - 10,
+            this.leftEdgeX - 30,
             this.pivotY - 175,  // center y=175, body spans y=0..350
-            20, 350,
+            60, 350,            // thick enough that nothing tunnels through
             { isStatic: true, label: 'bridgeWall', friction: 0, restitution: 0 }
         );
 
@@ -58,7 +65,16 @@ class Bridge {
             { isStatic: true, label: 'bridgePlatform', friction: 0.9 }
         );
 
-        Matter.Composite.add(physics.world, [this.wallBody, this.platformBody]);
+        // Approach ramp onto the scale platform (west side): flush with the
+        // actual ground (~y365) rising to the platform top (~y336), so the
+        // wheels roll up instead of wedging against a floating edge.
+        this.rampBody = Matter.Bodies.rectangle(
+            this.platX - 55, 355,
+            130, 12,
+            { isStatic: true, angle: -0.24, label: 'bridgeRamp', friction: 0.9 }
+        );
+
+        Matter.Composite.add(physics.world, [this.wallBody, this.platformBody, this.rampBody]);
         this._wallInWorld = true;
         this._platformInWorld = true;
         this.active = true;
@@ -75,7 +91,7 @@ class Bridge {
                 this._wallInWorld = true;
             }
             if (!this._platformInWorld) {
-                Matter.Composite.add(this.physics.world, this.platformBody);
+                Matter.Composite.add(this.physics.world, [this.platformBody, this.rampBody]);
                 this._platformInWorld = true;
             }
         } else {
@@ -85,6 +101,7 @@ class Bridge {
             }
             if (this._platformInWorld) {
                 Matter.Composite.remove(this.physics.world, this.platformBody);
+                Matter.Composite.remove(this.physics.world, this.rampBody);
                 this._platformInWorld = false;
             }
         }
@@ -92,9 +109,20 @@ class Bridge {
 
     // ── Weight detection ─────────────────────────────────────────────────────
 
+    // Center-based zones with a deliberate 120px dead gap between the scale
+    // and the deck. A 210px hearse cannot straddle its way across: somewhere
+    // in the gap its weight counts for nothing, the bridge snaps up, and the
+    // nose-brake says no. Only static weight on the scale (the coffin)
+    // bridges the two conditions.
     isHearseOnBridge(hearse) {
         const cx = hearse.x + hearse.width / 2;
-        return cx > this.leftEdgeX + 10 && cx < this.rightEdgeX - 10;
+        return cx > this.leftEdgeX + 80 && cx < this.rightEdgeX - 30;
+    }
+
+    isHearseOnPlatform(hearse) {
+        if (!hearse) return false;
+        const cx = hearse.x + hearse.width / 2;
+        return cx > this.platX && cx < this.platX + this.platW;
     }
 
     isGorgeOpen() {
@@ -118,24 +146,47 @@ class Bridge {
 
     update(coffin, hearse) {
         if (!this.active) return;
-        const coffinDown      = this.isCoffinOnPlatform(coffin);
-        this._hearseOnBridge  = hearse ? this.isHearseOnBridge(hearse) : false;
-        this.isDown           = coffinDown || this._hearseOnBridge;
-        this.targetAngle      = this.isDown ? this.LOWERED_ANGLE : this.RAISED_ANGLE;
+        const coffinDown        = this.isCoffinOnPlatform(coffin);
+        const hearseOnPlatform  = this.isHearseOnPlatform(hearse);
+        this._hearseOnBridge    = hearse ? this.isHearseOnBridge(hearse) : false;
+        this._weightOnPlatform  = coffinDown || hearseOnPlatform;
+        this.isDown             = this._weightOnPlatform || this._hearseOnBridge;
+        this.targetAngle        = this.isDown ? this.LOWERED_ANGLE : this.RAISED_ANGLE;
 
+        // Lowers with dignity, snaps back up without it
+        const speed = this.targetAngle > this.angle ? this.LOWER_SPEED : this.RAISE_SPEED;
         const diff = this.targetAngle - this.angle;
         if (Math.abs(diff) > 0.005) {
-            this.angle += Math.sign(diff) * Math.min(Math.abs(diff), this.ANIM_SPEED);
+            this.angle += Math.sign(diff) * Math.min(Math.abs(diff), speed);
         } else {
             this.angle = this.targetAngle;
         }
 
-        // Remove wall when bridge is nearly flat; restore when raised again
-        const nearlyDown = this.angle > -0.15;
-        if (nearlyDown && this._wallInWorld) {
+        // The betrayal, made physical: any time the bridge is not FULLY down
+        // and the hearse is in the strip between platform and deck, the
+        // rising plank stops its nose. No wall-body tricks — just a firm no.
+        if (hearse && hearse.chassis && this.angle < this.LOWERED_ANGLE - 0.02) {
+            const cx = hearse.x + hearse.width / 2;
+            if (cx > this.platX + this.platW - 20 && cx < this.leftEdgeX + 85 &&
+                hearse.chassis.velocity.x > 0.3) {
+                Matter.Body.setVelocity(hearse.chassis, {
+                    x: -1.6,
+                    y: hearse.chassis.velocity.y,
+                });
+            }
+        }
+
+        // The wall clears only when the bridge is FULLY down — a half-lowered
+        // bridge is not a road. Restore it only when the hearse is safely
+        // clear of the gap: never spawn a wall inside a car.
+        const fullyDown = this.angle >= this.LOWERED_ANGLE - 0.015;
+        const hearseClearOfWall = !hearse ||
+            hearse.x + hearse.width < this.leftEdgeX - 25 ||
+            hearse.x > this.rightEdgeX;
+        if (fullyDown && this._wallInWorld) {
             Matter.Composite.remove(this.physics.world, this.wallBody);
             this._wallInWorld = false;
-        } else if (!nearlyDown && !this._wallInWorld) {
+        } else if (!fullyDown && !this._wallInWorld && hearseClearOfWall) {
             Matter.Composite.add(this.physics.world, this.wallBody);
             this._wallInWorld = true;
         }
@@ -216,6 +267,17 @@ class Bridge {
         ctx.strokeStyle = '#000';
         ctx.lineWidth = 1.5;
         ctx.strokeRect(sx, top, this.platW, this.platH);
+
+        // Approach ramp (west side) — matches rampBody geometry
+        ctx.fillStyle = '#3a2510';
+        ctx.beginPath();
+        ctx.moveTo(sx - 118, top + this.platH + 15);
+        ctx.lineTo(sx + 4, top);
+        ctx.lineTo(sx + 4, top + this.platH + 15);
+        ctx.closePath();
+        ctx.fill();
+        ctx.strokeStyle = '#000';
+        ctx.stroke();
     }
 
     _drawPulleyPost(ctx, cameraX) {
@@ -306,17 +368,25 @@ class Bridge {
     }
 
     _drawPrompt(ctx, cameraX) {
-        if (!this.isDown) {
-            // Step 1: coffin not on platform yet
-            const sx  = this.platX - cameraX;
-            const top = this.platY - this.platH;
-            Utils.drawPrompt(ctx, '← the casket goes here', sx + 40, top - 6);
+        const platSX = this.platX - cameraX;
+        const platTop = this.platY - this.platH;
+        const game = window.game;
+        const coffinOnPlat = game ? this.isCoffinOnPlatform(game.coffin) : false;
+
+        if (this._hearseOnBridge && coffinOnPlat) {
+            // On the deck, held down by the hearse's own weight — go get the box
+            Utils.drawPrompt(ctx, '← fetch the casket', platSX + this.platW / 2, platTop - 26);
+        } else if (!this.isDown) {
+            // Nothing on the scale
+            Utils.drawPrompt(ctx, 'weight lowers the bridge', platSX + this.platW / 2, platTop - 26);
+        } else if (this._weightOnPlatform && !coffinOnPlat && !this._hearseOnBridge) {
+            // The hearse itself is the weight — this will not end well
+            Utils.drawPrompt(ctx, 'the scale needs the weight to stay', platSX + this.platW / 2, platTop - 26);
         } else if (!this._hearseOnBridge) {
-            // Step 2: bridge is down but hearse not on it yet
+            // Coffin on the scale, bridge down
             const sx = this.leftEdgeX - cameraX + 10;
             Utils.drawPrompt(ctx, 'drive on →', sx + 60, this.CLIFF_Y - 6);
         }
-        // Step 3: hearse on bridge — no prompt, player knows to retrieve coffin
     }
 
     getDebugText() {
