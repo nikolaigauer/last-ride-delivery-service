@@ -57,9 +57,10 @@ class Bier {
             game.coffin.velocityX = this.vx;
             game.coffin.velocityY = 0;
         }
-        // Or the corpse rides it bare, as it comes from the morgue
+        // Or the corpse rides it bare, as it comes from the morgue —
+        // pinned at deck height, lying down, physics on hold
         if (this.hasCorpse && game && game.corpse.isActive && !game.corpse.inCoffin && !game.corpse.isPickedUp) {
-            game.corpse.moveToPosition(this.x + 8, this.y - 42);
+            game.corpse.moveToPosition(this.x + 8, this.y - 20);
         }
     }
 

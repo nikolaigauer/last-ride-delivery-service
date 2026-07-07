@@ -159,16 +159,26 @@ class ChapterManager {
                 break;
             case 'chase':
                 s.timer++;
-                // Mid-slope, at speed, the coffin dismounts
-                if (bier.x > 2980 || s.timer > 500) {
-                    game.coffin.velocityX = Math.max(2.6, bier.vx + 0.8);
-                    game.coffin.velocityY = -1.5;
+                // Deep into the washboard at full speed, the coffin dismounts —
+                // lid still shut. The slope gets a turn with it first.
+                if (bier.x > 3350 || s.timer > 600) {
+                    game.coffin.velocityX = Math.max(3.0, bier.vx + 1.0);
+                    game.coffin.velocityY = -2.2;
                     game.coffin.onBier = false;
                     bier.hasCoffin = false;
+                    if (game.audio && game.audio.playCorpseImpact) game.audio.playCorpseImpact(1.5);
+                    s.phase = 'coffinTumbles';
+                    s.timer = 0;
+                }
+                break;
+            case 'coffinTumbles':
+                s.timer++;
+                // Real physics on ragged ground: the box bounces ridge to
+                // ridge, racking up genuine impacts. Then the lid gives.
+                if (s.timer >= 55) {
                     game.coffin.bumpCounter = Math.max(game.coffin.bumpCounter, game.coffin.bumpThreshold);
                     game.coffin.lidOpen = true;
                     game.coffin.lidOpenedByBump = true;
-                    if (game.audio && game.audio.playCorpseImpact) game.audio.playCorpseImpact(1.5);
                     s.phase = 'spill';
                     s.timer = 0;
                 }
@@ -873,7 +883,7 @@ const CHAPTER2_GROUND_TOP = 393; // Top surface where the hearse rolls (matches 
 // take without permission. The head's destination (a storm drain) sits at
 // the bottom of that slope.
 const CHAPTER4_BLUFF_X = 2300;    // the cart waits at the crest
-const CHAPTER4_DRAIN_X = 3900;    // where the head ends up
+const CHAPTER4_DRAIN_X = 4700;    // where the head ends up, eventually
 const CHAPTER4_GROUND_TOP = 395;  // road surface through the flat staging areas
 
 function buildChapter4Terrain(worldWidth) {
@@ -889,11 +899,15 @@ function buildChapter4Terrain(worldWidth) {
 
         // Flat spawn + phone
         if (x < 850) variation = 0;
-        // The bluff: up, crest, and the long eastern slope down to the drain
+        // The bluff: up, crest, then a LONG ragged eastern slope — washboard
+        // ridges that a runaway cart (and its cargo) will feel individually
         if (x >= 1400 && x < 2060) variation = -((x - 1400) / 660) * 80;
         else if (x >= 2060 && x < 2620) variation = -80;
-        else if (x >= 2620 && x < 3560) variation = -80 + ((x - 2620) / 940) * 80;
-        else if (x >= 3560 && x < 4300) variation = 0; // drain flats
+        else if (x >= 2620 && x < 4400) {
+            const p = (x - 2620) / 1780;
+            variation = -80 + p * 80 + Math.sin(x * 0.085) * 7 * Math.min(1, p * 3);
+        }
+        else if (x >= 4400 && x < 5100) variation = 0; // drain flats
         // Flatten under the melon stand, St. Anthony's, and the last phone
         if (Math.abs(x - 9000) < 200) variation = 0;
         if (Math.abs(x - 13200) < 450) variation = 0;

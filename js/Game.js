@@ -375,7 +375,10 @@ class StickmanGame {
 
         // Update corpse physics when active and not in coffin
         // NOTE: We now update even when picked up so limbs can dangle!
-        if (this.corpse.isActive && !this.corpse.inCoffin) {
+        if (this.corpse.isActive && !this.corpse.inCoffin &&
+            !this.biers.some(b => b.hasCorpse)) {
+            // (Riding a cart freezes his physics — otherwise gravity drags the
+            // lying pose into a slow diagonal levitation. He's had enough.)
             this.corpse.updatePhysics(this.terrain);
         }
         
