@@ -19,7 +19,7 @@ class Hearse {
         this.visualDoorOpen = false; // sprite-only override (dream sequence) — never affects ejection logic
         this.doorOpenedByBump = false;
         this.bumpCounter = 0;
-        this.bumpThreshold = 20;
+        this.bumpThreshold = 14;
         this.doorTimer = 0;
 
         // Health system (unchanged)
@@ -149,8 +149,9 @@ class Hearse {
         const impactSpeed = Math.abs(vel.x * n.x + vel.y * n.y);
 
         // Below this is suspension chatter, not a real bump. (The old value of 3
-        // scored bumps on gentle rolling hills — the door popped from normal driving.)
-        if (impactSpeed > 6) {
+        // scored bumps on gentle rolling hills — the door popped from normal
+        // driving. 5 keeps flat cruising free but makes hills-at-speed clumsy.)
+        if (impactSpeed > 5) {
             const multiplier = Math.max(0.5, Math.min(2.0, impactSpeed / 8));
             const bumpDamage = Math.floor(this.damagePerBump * multiplier);
             this.bumpCounter++;
@@ -158,7 +159,7 @@ class Hearse {
             this._bumpCooldown = this.BUMP_COOLDOWN_FRAMES;
             console.log(`Impact bump! speed=${impactSpeed.toFixed(1)} dmg=${bumpDamage} count=${this.bumpCounter}/${this.bumpThreshold}`);
 
-            if (window.game && window.game.coffin && window.game.coffin.inHearse && multiplier > 1.4) {
+            if (window.game && window.game.coffin && window.game.coffin.inHearse && multiplier > 1.25) {
                 const c = window.game.coffin;
                 c.bumpCounter++;
                 c.health = Math.max(0, c.health - Math.floor(c.damagePerBump * multiplier));

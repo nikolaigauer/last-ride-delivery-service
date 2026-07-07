@@ -125,8 +125,12 @@ Monologue jinx before the disaster: *"Smooth so far."*
 
 New client: a professor. Family wants an open casket — *"the whole man, top
 to bottom."* Dispatch says **mind the trees**; there is a sign; there is a
-tree. The branch flips the lid and the head arcs into a storm drain while the
-hearse drives on. *"That's not ideal."* A roadside stand sells melons of
+tree. The branch jolts the hearse hard (real physics — the car goes briefly
+airborne): the door pops, the coffin ejects, the lid goes, the corpse
+ragdolls onto the road, and the head separates in the tumble and rolls —
+and rolls, past the wreck — into a storm drain. *"That's not ideal."*
+The player must reassemble the situation by hand: body back in box, box back
+in hearse, and a head from somewhere. A roadside stand sells melons of
 dignified proportions (`space — take the melon` → *"Close enough."*).
 Open-casket delivery requires the corpse whole or something head-shaped along
 for the ride. Verdict: **"Open casket. The widow said he finally looked at

@@ -158,7 +158,12 @@ class ChapterManager {
         }
     }
 
-    // === Chapter 4 scripted event: the branch takes the professor's head ===
+    // === Chapter 4 scripted event: the branch starts a real cascade ===
+    // The branch physically jolts the hearse; from there the game's own
+    // systems do the damage: door pops → coffin ejects → lid pops → corpse
+    // ragdolls onto the road → the head separates in the tumble and rolls
+    // (and rolls) into the storm drain. Only the head's final roll is
+    // scripted — everything else is genuine physics, genuinely clumsy.
     _updateChapter4Events(game) {
         const s = this._ch4;
         if (!s || s.phase === 'done') return;
@@ -167,34 +172,59 @@ class ChapterManager {
                 if (game.currentEpisode === 4 && game.player.inVehicle &&
                     game.coffin.inHearse && game.corpse.inCoffin &&
                     game.hearse.x + game.hearse.width * 0.7 > CHAPTER4_BRANCH_X) {
-                    // THUNK. Lid flips up briefly (timer-closed, so the body
-                    // stays put) and the head goes over the side.
-                    game.coffin.lidOpen = true;
-                    game.coffin.lidOpenedByBump = false;
-                    game.coffin.lidTimer = 100;
-                    if (!game.corpse.headDetached) game.corpse.detachHead();
-                    s.phase = 'headArc';
+                    // THUNK — the branch rakes the roof. Real jolt, real damage.
+                    if (game.hearse.chassis) {
+                        const v = game.hearse.chassis.velocity;
+                        Matter.Body.setVelocity(game.hearse.chassis, { x: v.x * 0.35, y: 3.5 });
+                        Matter.Body.setAngularVelocity(game.hearse.chassis, -0.06);
+                    }
+                    game.hearse.health = Math.max(0, game.hearse.health - 15);
+                    game.hearse.bumpCounter = game.hearse.bumpThreshold; // door pops
+                    if (game.audio && game.audio.playCorpseImpact) game.audio.playCorpseImpact(2);
+                    s.phase = 'awaitEject';
                     s.timer = 0;
-                    s.fromX = game.hearse.x + 130;
-                    s.fromY = game.hearse.y + 40;
-                    break;
                 }
                 break;
-            case 'headArc': {
+            case 'awaitEject':
+                s.timer++;
+                if (!game.coffin.inHearse) {
+                    // Coffin's on the road — the landing takes the lid with it
+                    game.coffin.bumpCounter = Math.max(game.coffin.bumpCounter, game.coffin.bumpThreshold);
+                    game.coffin.lidOpen = true;
+                    game.coffin.lidOpenedByBump = true;
+                    s.phase = 'awaitSpill';
+                    s.timer = 0;
+                } else if (s.timer > 240) {
+                    s.phase = 'armed'; // failsafe
+                }
+                break;
+            case 'awaitSpill':
+                s.timer++;
+                // Game's update ejects the corpse; let the ragdoll hit the road
+                // and flop for a beat before the tumble claims the head.
+                if (!game.corpse.inCoffin && s.timer > 35) {
+                    if (!game.corpse.headDetached) game.corpse.detachHead();
+                    s.phase = 'headRolls';
+                    s.timer = 0;
+                    const head = game.corpse.detachedHead;
+                    s.fromX = head ? head.x : game.corpse.x;
+                } else if (game.corpse.inCoffin && s.timer > 90) {
+                    // Failsafe: lid open but body still in — force the spill
+                    game.corpse.ejectFromCoffin(game.coffin.x, game.coffin.y, game.coffin.velocityX);
+                }
+                break;
+            case 'headRolls': {
                 s.timer++;
                 const head = game.corpse.detachedHead;
-                if (!head) { // exotic state — skip straight to the aftermath
-                    s.phase = 'gone';
-                    s.timer = 0;
-                    break;
-                }
-                const T = 80;
+                if (!head) { s.phase = 'gone'; s.timer = 0; break; }
+                // Ground-hugging hops, shrinking as it rolls — a head with
+                // somewhere to be. It passes the parked hearse. It keeps going.
+                const T = 130;
                 const t = Math.min(1, s.timer / T);
                 const x = s.fromX + (CHAPTER4_DRAIN_X - s.fromX) * t;
-                const y = s.fromY + (CHAPTER4_GROUND_TOP - 8 - s.fromY) * t -
-                    Math.sin(t * Math.PI) * 55 - Math.abs(Math.sin(t * Math.PI * 2.5)) * 10 * (1 - t);
+                const y = (CHAPTER4_GROUND_TOP - 9) - Math.abs(Math.sin(t * Math.PI * 5)) * 26 * (1 - t * 0.7);
                 head.x = x; head.y = y;
-                head.oldX = x; head.oldY = y; // kill self-physics; the script drives
+                head.oldX = x; head.oldY = y; // script drives; physics idles
                 head.velX = 0; head.velY = 0;
                 if (t >= 1) {
                     game.corpse.detachedHead = null; // down the drain. gone.

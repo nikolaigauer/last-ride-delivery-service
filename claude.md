@@ -107,10 +107,12 @@ js/CorpseEditor.js    dev tool (?dev=1, key C)
 
 ## Physics tuning (Hearse.js constructor — the knobs that matter)
 
-- `bumpThreshold: 20` bumps → back door opens permanently
-- Impact scoring: `impactSpeed > 6` (below is suspension chatter),
+- `bumpThreshold: 14` bumps → back door opens permanently
+- Impact scoring: `impactSpeed > 5` (below is suspension chatter),
   damage multiplier `impactSpeed/8` clamped 0.5–2, 36-frame cooldown;
-  coffin takes transmitted damage only when multiplier > 1.4 (severe hits)
+  coffin takes transmitted damage when multiplier > 1.25
+- Tuning intent: flat cruising stays free; hills taken at speed should be
+  visibly clumsy — the comedy of errors lives in this margin
 - Overheat: `heat += (|v|−7)² × 0.0015` per frame → redline ~45s, moderate
   driving never overheats. Passive cool 0.03/frame; standing at the hood
   (orange glow) cools 4× faster. Recovery latch at heat ≤ 40.
