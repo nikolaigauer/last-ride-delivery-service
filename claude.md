@@ -26,7 +26,7 @@ white letterspaced caps). No Arial, no neon, no distressed fonts.
 
 ---
 
-## What exists (July 2026): a two-chapter playable demo
+## What exists (July 2026): a four-chapter playable demo
 
 ### Chapter 1 — "The Wrong Church" (world: 25,000px)
 1. Start in hearse; ringing phone booth (x≈800) gives the dispatch briefing
@@ -43,6 +43,17 @@ white letterspaced caps). No Arial, no neon, no distressed fonts.
 1. Deliberately monotonous flat stretch with interior monologue snippets
 2. Plank ravine (x=8000): carry a plank, lay it over the gap, cross carefully
 3. Deliver at the real St. Margaret's (x=15500); closing phone (x=17000)
+
+### Chapter 3 — "The Family Plot" (16,000px) · Chapter 4 — "The Open Casket" (15,500px)
+Ch.3: re-collect the same corpse from St. Margaret's (x=1650), scripted loss
+at Dead Man's Gap (x=6800, pre-bridged; loss triggers x=6250), deer at 8600,
+graveyard delivery at 13500 (closed casket), closing phone 15200. Ch.4: new
+corpse at 1500, branch gag at 6500 (head → drain at 7150), melon at 9000,
+open-casket delivery at St. Anthony's 13000, final phone 14500. Scripted
+beats live in `ChapterManager._updateChapter3Events/_updateChapter4Events`;
+per-chapter props (tree, drain, melon stand) in `ChapterManager.drawProps`.
+Substitute cargo is `Roadkill` (kind: 'deer'|'melon'); `Church.openCasket`
+gates head-completeness. Dream sequence fires once in ch.2.
 
 Coffin/corpse/hearse damage persists across chapters. Death (falling off
 screen) → fade → space to respawn at `game.checkpointX`.
@@ -79,6 +90,8 @@ js/Physics.js         Matter.js wrapper
 js/Hearse.js          Matter composite; bump/overheat/door logic + tuning consts
 js/Coffin.js          Matter body when free; lid/bump memory
 js/Corpse.js          Verlet ragdoll + detachable head
+js/Roadkill.js        substitute cargo: deer (ch.3) / melon (ch.4)
+js/DreamSequence.js   ch.2 daymare (roof crawl → POV smash → overheat)
 js/Player.js          walk cycle, enter/exit hearse
 js/Terrain.js         procedural terrain + regenerate() for chapter swaps
 js/ChapterManager.js  chapters, fades, chapter-2 terrain builder
@@ -137,12 +150,12 @@ hearse enter/exit. Proximity thresholds ~60px; hearse entry 80px.
 
 ## Near-term roadmap
 
-1. **Dream sequence** (ch.2): corpse crawls over the roof toward the driver
-   mid-drive; a real terrain bump snaps him out. See story doc.
-2. **Title card**: intertitle-style opening ("LAST RIDE — a delivery")
-3. **Procedural hearse/coffin/phone** drawings to finish the visual unification
-4. **Roadkill substitution** chapter (see story doc + PROJECT_MEMORY)
-5. Later: fragile one-use bridges, ferry timing, limb detachment, damage states
+1. **Title card**: intertitle-style opening ("LAST RIDE — a delivery")
+2. **Procedural hearse/coffin/phone** drawings to finish the visual unification
+3. **Fixed-timestep game loop** (see known issues)
+4. Later: fragile one-use bridges, ferry timing, damage states, chapter 5+
+   (the dream sequence, roadkill and head substitutions are all SHIPPED —
+   see story doc for what each chapter contains)
 
 ## Conventions
 

@@ -107,11 +107,32 @@ which retroactively makes it both funnier and sadder. Also quietly teaches
 that chapter 2+ can no longer be predicted. Preview from console:
 `game.dreamSequence.start(true)`.
 
-## Planned: Roadkill Substitution (future chapter)
+## Chapter 3 — The Family Plot (IMPLEMENTED)
 
-See CLAUDE.md — corpse lost/destroyed mid-route; roadkill of convenient size lies
-nearby; the player can make a bad decision. Dispatcher's obliviousness carries the
-gag. Consequences range from "nobody noticed" to "banned from the cemetery."
+The widow moved the service: collect the SAME corpse back from St. Margaret's,
+rebury at Hillcrest. Dispatch: *"Try not to lose him. Again."* At Dead Man's
+Gap — already bridged; the road was never the problem — a scripted cascade
+fires the game's own systems: door pops on the washboard, coffin ejects, lid
+opens, and the body bounces down the road into the one hole in the county.
+*"Of course." / "Can't bury an empty box."* A dead deer waits up the road
+(`space — take the deer`). Load it in: *"God forgive me."* Delivery verdict:
+**"Closed casket. The family was moved. Nobody looked."** Closing call:
+*"Whatever happened out there, I don't want to know. … Burn the gloves."*
+
+Monologue jinx before the disaster: *"Smooth so far."*
+
+## Chapter 4 — The Open Casket (IMPLEMENTED)
+
+New client: a professor. Family wants an open casket — *"the whole man, top
+to bottom."* Dispatch says **mind the trees**; there is a sign; there is a
+tree. The branch flips the lid and the head arcs into a storm drain while the
+hearse drives on. *"That's not ideal."* A roadside stand sells melons of
+dignified proportions (`space — take the melon` → *"Close enough."*).
+Open-casket delivery requires the corpse whole or something head-shaped along
+for the ride. Verdict: **"Open casket. The widow said he finally looked at
+peace. Rounder than she remembered. At peace."** The melon rolls onto the
+lawn during the drop; nobody says a word about it. Final call:
+*"Stop telling me how you do this. I mean it."* → THE END.
 
 ---
 

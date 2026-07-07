@@ -50,7 +50,21 @@ hearse with coffin, moving east.
 
 **Chapter 2** (world 18,000px, terrain regenerated): spawn 500 ·
 plank ravine 7920–8080 (plank spawns 7500) · St. Margaret's 15500 ·
-closing phone 17000. Checkpoint 6300.
+closing phone 17000. Checkpoint 6300. Dream sequence auto-fires once,
+x 8700–11000 at speed with cargo (`game.dreamSequence.start(true)` to force).
+
+**Chapter 3** (16,000px): spawn 350 · phone 700 · coffin staged 1650 ·
+scripted loss trigger 6250 · Dead Man's Gap 6800 (pre-bridged) · deer 8600 ·
+graveyard 13500 · closing phone 15200. Checkpoint 5400.
+
+**Chapter 4** (15,500px): spawn 350 · phone 700 · coffin staged 1500 ·
+branch 6500 (head → drain 7150) · melon 8983 · St. Anthony's 13000
+(openCasket) · final phone 14500. Checkpoint 5000.
+
+Jump straight to a chapter: `game.chapterManager.applyChapter(n)` (0-based).
+Note: pressing Space in the same frame as `hearse.teleportTo()` acts on the
+PRE-teleport position (interactions run before the hearse maps Matter → x);
+wait one frame in scripted tests.
 
 ## Regression checklist (the core loop, in order)
 
