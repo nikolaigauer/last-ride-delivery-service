@@ -721,6 +721,9 @@ class StickmanGame {
         // Dream vignette + POV smash take the whole frame when active
         this.dreamSequence.drawOverlay(this.ctx);
 
+        // Chapter event overlays (e.g., the ch.3 deer strike POV)
+        this.chapterManager.drawEventOverlay(this.ctx);
+
         // Fade overlay LAST — covers everything inside the canvas during chapter transitions
         if (this.chapterManager) this.chapterManager.drawFadeOverlay(this.ctx);
 

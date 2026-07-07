@@ -318,10 +318,162 @@ class ChapterManager {
                 s.timer++;
                 if (s.timer === 200) {
                     game.monologue.playNow("Can't bury an empty box.");
+                    s.phase = 'deerWait';
+                    s.timer = 0;
+                }
+                break;
+
+            // === The deer is provided ===
+            case 'deerWait':
+                if (game.player.inVehicle && game.hearse.x > 8400 &&
+                    Math.abs(game.hearse.velocity) > 2) {
+                    s.phase = 'deerPOV';
+                    s.timer = 0;
+                }
+                break;
+            case 'deerPOV':
+                s.timer++;
+                if (s.timer === 38) {
+                    // THUMP.
+                    if (game.audio && game.audio.playCorpseImpact) game.audio.playCorpseImpact(2);
+                    if (game.hearse.chassis) {
+                        const v = game.hearse.chassis.velocity;
+                        Matter.Body.setVelocity(game.hearse.chassis, { x: v.x * 0.25, y: v.y });
+                    }
+                    game.hearse.health = Math.max(0, game.hearse.health - 8);
+                }
+                if (s.timer >= 58) {
+                    // Back to the world. Something lies on the road behind you.
+                    game.roadkill.isActive = true;
+                    game.roadkill.isPickedUp = false;
+                    game.roadkill.inCoffin = false;
+                    game.roadkill.x = game.hearse.x - 160;
+                    s.phase = 'deerAfter';
+                    s.timer = 0;
+                }
+                break;
+            case 'deerAfter':
+                s.timer++;
+                if (s.timer === 150) {
+                    if (!game.monologue) game.monologue = new MonologueSystem();
+                    game.monologue.playNow('…About the right size.');
                     s.phase = 'done';
                 }
                 break;
         }
+    }
+
+    // Full-frame event overlays (drawn near the end of Game.render).
+    // Currently: the chapter-3 deer strike, seen from the driver's seat.
+    drawEventOverlay(ctx) {
+        if (this.currentIndex !== 2 || !this._ch3 || this._ch3.phase !== 'deerPOV') return;
+        const s = this._ch3;
+        const w = ctx.canvas.width, h = ctx.canvas.height;
+
+        ctx.save();
+
+        // Shake after the impact
+        if (s.timer > 38) {
+            const decay = 1 - (s.timer - 38) / 20;
+            ctx.translate((Math.random() - 0.5) * 12 * decay, (Math.random() - 0.5) * 12 * decay);
+        }
+
+        // Cab interior
+        ctx.fillStyle = '#000';
+        ctx.fillRect(-20, -20, w + 40, h + 40);
+
+        // Windshield + road (same grammar as the daymare POV)
+        const wsX = 170, wsY = 70, wsW = 660, wsH = 280;
+        const vpX = w / 2, vpY = 215;
+        ctx.fillStyle = '#f2f1ec';
+        ctx.beginPath();
+        ctx.roundRect(wsX, wsY, wsW, wsH, 14);
+        ctx.fill();
+
+        ctx.save();
+        ctx.beginPath();
+        ctx.roundRect(wsX, wsY, wsW, wsH, 14);
+        ctx.clip();
+
+        ctx.fillStyle = '#d9d7d0';
+        ctx.fillRect(wsX, vpY, wsW, wsY + wsH - vpY);
+        ctx.strokeStyle = '#000';
+        ctx.lineWidth = 2;
+        ctx.beginPath();
+        ctx.moveTo(wsX, vpY); ctx.lineTo(wsX + wsW, vpY);
+        ctx.moveTo(280, wsY + wsH); ctx.lineTo(vpX, vpY);
+        ctx.moveTo(720, wsY + wsH); ctx.lineTo(vpX, vpY);
+        ctx.stroke();
+
+        // THE DEER — standing on the road, mid-crossing, growing fast.
+        // It has already turned its head. It has already judged you.
+        if (s.timer <= 42) {
+            const t = Math.min(1, s.timer / 38);
+            const sc = 0.35 + t * t * 1.5;            // accelerating approach
+            const dy = vpY + 12 + t * t * 150;         // drops down-frame as it nears
+            const dx = vpX + 20 - t * 30;
+            ctx.fillStyle = '#000';
+            ctx.strokeStyle = '#000';
+            ctx.lineCap = 'round';
+            // Legs
+            ctx.lineWidth = 4 * sc;
+            for (const off of [-26, -14, 12, 24]) {
+                ctx.beginPath();
+                ctx.moveTo(dx + off * sc, dy);
+                ctx.lineTo(dx + off * sc, dy + 40 * sc);
+                ctx.stroke();
+            }
+            // Body
+            ctx.beginPath();
+            ctx.ellipse(dx, dy - 8 * sc, 36 * sc, 15 * sc, 0, 0, Math.PI * 2);
+            ctx.fill();
+            // Neck + head, turned toward the windshield
+            ctx.beginPath();
+            ctx.ellipse(dx - 30 * sc, dy - 30 * sc, 9 * sc, 14 * sc, 0.5, 0, Math.PI * 2);
+            ctx.fill();
+            ctx.beginPath();
+            ctx.ellipse(dx - 34 * sc, dy - 44 * sc, 10 * sc, 8 * sc, 0, 0, Math.PI * 2);
+            ctx.fill();
+            // Antlers
+            ctx.lineWidth = 2.5 * sc;
+            ctx.beginPath();
+            ctx.moveTo(dx - 38 * sc, dy - 50 * sc); ctx.lineTo(dx - 46 * sc, dy - 66 * sc);
+            ctx.moveTo(dx - 42 * sc, dy - 58 * sc); ctx.lineTo(dx - 52 * sc, dy - 62 * sc);
+            ctx.moveTo(dx - 30 * sc, dy - 51 * sc); ctx.lineTo(dx - 26 * sc, dy - 68 * sc);
+            ctx.stroke();
+            // Eyes — two white points, fixed on you
+            ctx.fillStyle = '#fff';
+            ctx.beginPath();
+            ctx.arc(dx - 38 * sc, dy - 45 * sc, 2.2 * sc, 0, Math.PI * 2);
+            ctx.arc(dx - 30 * sc, dy - 45 * sc, 2.2 * sc, 0, Math.PI * 2);
+            ctx.fill();
+        }
+        ctx.restore(); // windshield clip
+
+        // Dash, wheel, hands — white ink on black
+        ctx.strokeStyle = '#fff';
+        ctx.lineWidth = 2.5;
+        ctx.beginPath();
+        ctx.moveTo(60, 392); ctx.lineTo(w - 60, 392);
+        ctx.stroke();
+        ctx.beginPath();
+        ctx.arc(vpX, 625, 220, Math.PI * 1.32, Math.PI * 1.68);
+        ctx.stroke();
+        for (const hx of [vpX - 95, vpX + 95]) {
+            ctx.beginPath();
+            ctx.arc(hx, 423, 11, 0, Math.PI * 2);
+            ctx.fillStyle = '#000';
+            ctx.fill();
+            ctx.stroke();
+        }
+
+        // Impact flash
+        if (s.timer > 42 && s.timer <= 50) {
+            ctx.fillStyle = '#fff';
+            ctx.fillRect(-20, -20, w + 40, h + 40);
+        }
+
+        ctx.restore();
     }
 
     beginTransitionTo(idx) {
@@ -538,12 +690,11 @@ class ChapterManager {
                 game.corpse.isPickedUp = false;
                 game.corpse.moveToPosition(game.coffin.x, game.coffin.y);
 
-                // 7. Something dead by the roadside, east of the gap
+                // 7. The deer is not there yet. The deer will be provided.
                 game.roadkill.setKind('deer');
-                game.roadkill.isActive = true;
+                game.roadkill.isActive = false;
                 game.roadkill.inCoffin = false;
                 game.roadkill.isPickedUp = false;
-                game.roadkill.x = 8600;
 
                 // 8. Dead Man's Gap — already bridged. The road is fine.
                 //    The road was never the problem.
